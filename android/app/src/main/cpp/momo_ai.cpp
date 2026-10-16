@@ -9,11 +9,18 @@
 static std::mutex mutex;
 static llama_model *model=nullptr;
 static std::atomic<bool> cancelled(false);
+static std::mutex error_mutex;
+static std::string model_error;
+static void capture_error(enum ggml_log_level level,const char *text,void *) {
+ if(level!=GGML_LOG_LEVEL_ERROR||!text)return;
+ std::lock_guard<std::mutex> lock(error_mutex);model_error+=text;
+ if(model_error.size()>1200)model_error.erase(0,model_error.size()-1200);
+}
 static std::chrono::steady_clock::time_point deadline;
 static bool abort_generation(void *) {return cancelled.load()||std::chrono::steady_clock::now()>deadline;}
 static void fail(JNIEnv *env,const char *message){env->ThrowNew(env->FindClass("java/lang/IllegalStateException"),message);}
 extern "C" JNIEXPORT void JNICALL Java_com_momo_companion_MomoNativePlugin_nativeLoad(JNIEnv *env,jclass,jstring path){
- std::lock_guard<std::mutex> lock(mutex);if(model){llama_model_free(model);model=nullptr;}llama_backend_init();auto params=llama_model_default_params();params.n_gpu_layers=0;params.progress_callback=[](float,void*){return !cancelled.load();};const char *name=env->GetStringUTFChars(path,nullptr);model=llama_model_load_from_file(name,params);env->ReleaseStringUTFChars(path,name);if(!model)fail(env,"Failed to load GGUF model");
+ std::lock_guard<std::mutex> lock(mutex);if(model){llama_model_free(model);model=nullptr;}{std::lock_guard<std::mutex> errors(error_mutex);model_error.clear();}llama_log_set(capture_error,nullptr);llama_backend_init();auto params=llama_model_default_params();params.n_gpu_layers=0;params.progress_callback=[](float,void*){return !cancelled.load();};const char *name=env->GetStringUTFChars(path,nullptr);model=llama_model_load_from_file(name,params);env->ReleaseStringUTFChars(path,name);if(!model){std::lock_guard<std::mutex> errors(error_mutex);std::string message=cancelled.load()?"Model loading cancelled":"Failed to load GGUF model: "+model_error;fail(env,message.c_str());}
 }
 extern "C" JNIEXPORT void JNICALL Java_com_momo_companion_MomoNativePlugin_nativeUnload(JNIEnv *,jclass){std::lock_guard<std::mutex> lock(mutex);if(model){llama_model_free(model);model=nullptr;}llama_backend_free();}
 extern "C" JNIEXPORT void JNICALL Java_com_momo_companion_MomoNativePlugin_nativeBegin(JNIEnv *,jclass){cancelled.store(false);}

@@ -39,6 +39,7 @@ public class MomoNativePlugin extends Plugin {
     private final AtomicBoolean busy=new AtomicBoolean(false);
     private final Handler handler=new Handler(Looper.getMainLooper());
     private volatile boolean loaded=false, requestCancelled=false, destroyed=false;
+    private volatile String lastError=null;
     private PowerManager.OnThermalStatusChangedListener thermalListener;
     private final Runnable unload=()->{
         if(!worker.isShutdown()) worker.execute(()->{nativeUnload();loaded=false;});
@@ -91,7 +92,7 @@ public class MomoNativePlugin extends Plugin {
     @PluginMethod public void status(PluginCall call){
         JSObject result=new JSObject();result.put("runtimeAvailable",true);
         result.put("modelAvailable",installed());result.put("bundledModelAvailable",bundled());
-        result.put("loaded",loaded);result.put("busy",busy.get());
+        result.put("loaded",loaded);result.put("busy",busy.get());result.put("lastError",lastError);
         result.put("overlayAllowed",Settings.canDrawOverlays(getContext()));
         result.put("threads",2);result.put("context",2048);result.put("maxTokens",128);call.resolve(result);
     }
@@ -107,11 +108,16 @@ public class MomoNativePlugin extends Plugin {
     }
     @PluginMethod public void loadBundledModel(PluginCall call){
         if(!busy.compareAndSet(false,true)){call.reject("正在准备或推理，请先停止");return;}
-        requestCancelled=false;
+        handler.removeCallbacks(unload);requestCancelled=false;nativeBegin();lastError=null;
         worker.execute(()->{
-            try{ensureBundledModel();call.resolve();}
-            catch(Exception error){call.reject("模型准备失败或已停止："+error.getMessage(),error);}
-            finally{busy.set(false);}
+            try{
+                ensureBundledModel();
+                if(requestCancelled)throw new IOException("Preparation cancelled");
+                if(!loaded){nativeLoad(model().getAbsolutePath());loaded=true;}
+                call.resolve();
+            }
+            catch(Exception error){lastError="AI 加载失败或已停止："+error.getMessage();call.reject(lastError,error);}
+            finally{busy.set(false);if(!destroyed)handler.postDelayed(unload,30000);}
         });
     }
     @PluginMethod public void chat(PluginCall call){
@@ -121,7 +127,7 @@ public class MomoNativePlugin extends Plugin {
         final String prompt=call.getString("prompt","");
         if(prompt.length()>16000){call.reject("消息过长");return;}
         if(!busy.compareAndSet(false,true)){call.reject("正在回复，请稍候");return;}
-        handler.removeCallbacks(unload);requestCancelled=false;nativeBegin();
+        handler.removeCallbacks(unload);requestCancelled=false;nativeBegin();lastError=null;
         worker.execute(()->{
             try{
                 ensureBundledModel();
@@ -129,7 +135,7 @@ public class MomoNativePlugin extends Plugin {
                 if(!loaded){nativeLoad(model().getAbsolutePath());loaded=true;}
                 byte[] response=nativeComplete(prompt.getBytes(StandardCharsets.UTF_8),threads,maxTokens);
                 JSObject result=new JSObject();result.put("text",new String(response,StandardCharsets.UTF_8));call.resolve(result);
-            }catch(Exception error){call.reject("准备或推理失败/已停止："+error.getMessage(),error);}
+            }catch(Exception error){lastError="准备或推理失败/已停止："+error.getMessage();call.reject(lastError,error);}
             finally{busy.set(false);if(!destroyed)handler.postDelayed(unload,30000);}
         });
     }

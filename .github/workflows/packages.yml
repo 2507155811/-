@@ -18,6 +18,10 @@ on:
       - native-ui.js
       - native.css
       - local-ai.js
+      - android/app/src/**
+      - companion-data.js
+      - companion-features.js
+      - public/evolution/**
       - scripts/prepare-windows-engine.mjs
       - scripts/prepare-llama.mjs
 permissions:
@@ -69,7 +73,7 @@ jobs:
       - name: Package Windows x64
         if: matrix.target == 'windows'
         run: |
-          npm run desktop:package:windows
+          npm run desktop:package:windows 2>&1 | tee build-windows.log
           npm run test:ai
           python - <<'PY'
           import pathlib, zipfile
@@ -83,13 +87,24 @@ jobs:
         if: matrix.target == 'android'
         run: |
           chmod +x android/gradlew
-          npm run android:build
+          npm run android:build 2>&1 | tee build-android.log
           mkdir -p release
           cp android/app/build/outputs/apk/debug/app-debug.apk release/momo-0.6-with-ai-debug.apk
       - name: Verify packaged Windows engine
         if: matrix.target == 'windows'
         run: |
           node scripts/test-packaged-engine.mjs
+      - name: Report build failure details
+        if: failure()
+        run: |
+          python - <<'PY'
+          import pathlib, re
+          for file in pathlib.Path('.').glob('build-*.log'):
+              lines=file.read_text(errors='replace').splitlines()
+              errors=[line for line in lines if re.search(r'error[: ]|failed|exception|assertion',line,re.I)]
+              for line in (errors[-12:] or lines[-8:]):
+                  print('::error::'+line[-1200:].replace('%','%25').replace('\r','%0D').replace('\n','%0A'))
+          PY
       - name: Generate checksums
         run: |
           cd release

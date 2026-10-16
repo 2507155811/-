@@ -39,7 +39,7 @@ if (!process.argv.includes("--source-only")) {
     "-DGGML_BACKEND_DL=OFF",
     ...(process.platform === "win32" ? [
       "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded",
-      "-DGGML_AVX=OFF", "-DGGML_AVX2=OFF", "-DGGML_FMA=OFF", "-DGGML_F16C=OFF", "-DGGML_SSE42=OFF",
+      "-DGGML_AVX=OFF", "-DGGML_AVX2=OFF", "-DGGML_FMA=OFF", "-DGGML_F16C=OFF", "-DGGML_SSE42=OFF", "-DGGML_BMI2=OFF",
     ] : []),
     "-DLLAMA_BUILD_TESTS=OFF",
     "-DLLAMA_BUILD_EXAMPLES=OFF",
