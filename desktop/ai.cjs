@@ -90,7 +90,16 @@ class LocalAI {
         "128",
         "--no-webui",
       ],
-      { stdio: ["ignore", "ignore", "pipe"], windowsHide: true },
+      {
+        stdio: ["ignore", "ignore", "pipe"],
+        windowsHide: true,
+        env: {
+          ...process.env,
+          OMP_NUM_THREADS: "2",
+          OMP_WAIT_POLICY: "PASSIVE",
+          KMP_BLOCKTIME: "0",
+        },
+      },
     );
     this.child = child;
     let lastError = "";

@@ -20,7 +20,9 @@
     "desktop:package": "npm run desktop:prepare && npm run build && node scripts/package-desktop.mjs",
     "desktop:package:ui": "npm run desktop:prepare && npm run build && node scripts/package-desktop.mjs --ui-only",
     "test:ai": "node scripts/test-ai.mjs",
-    "test:desktop:ai": "npm run build && node scripts/test-desktop-ai.mjs"
+    "test:desktop:ai": "npm run build && node scripts/test-desktop-ai.mjs",
+    "ai:windows:runtime": "python scripts/prepare-windows-runtime.py",
+    "desktop:package:windows": "npm run ai:windows:runtime && npm run build && node scripts/package-desktop.mjs --platform=win32 --arch=x64"
   },
   "dependencies": {
     "@capacitor/android": "^7.6.9",

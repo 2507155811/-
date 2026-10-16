@@ -58,6 +58,7 @@ JSON 备份包含上述 localStorage 记录，不包含 3D 文件、AI 权重或
 完整构建步骤、网络前置条件、平台验证范围和耗电验收见 [原生与 AI 指南](docs/native-and-ai.md)。
 
 - `npm run desktop`：启动电脑原生应用。
+- `npm run desktop:package:windows`：使用已校验的官方 CPU 引擎跨平台生成 Windows x64 便携目录；需要准备模型。
 - `npm run android:build`：构建含模型的安卓包，缺少校验权重会失败。
 - `npm run android:build:ui`：构建不含权重的 UI 调试包。
 - `npm run test:desktop`：电脑原生冒烟检查。

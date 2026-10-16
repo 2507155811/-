@@ -45,7 +45,7 @@ npm run desktop:package
 
 `desktop` 启动 Electron 控制面板，可在偏好设置显示透明宠物窗口、置顶、鼠标穿透和托盘入口。面板和宠物使用同一来源、同一用户存储；跨窗口更新不会通过重载清除正在输入的内容。
 
-打包命令生成当前操作系统的应用目录；Windows/macOS 应在对应系统构建引擎和应用。本次只验证 Linux 的 Electron 内容与 IPC；无桌面合成器的测试不能验证 Windows/macOS 的透明、置顶和托盘外观。未制作已签名的 Windows/macOS 安装程序。
+打包命令生成当前操作系统的应用目录；Windows 也可以使用固定版本的官方 CPU 运行库进行跨平台打包（命令见下）。当前已生成 Windows x64 便携 ZIP，并检查 PE 架构与包内模型哈希；尚未在 Windows 实机运行。Linux 的 Electron 内容与 IPC 已验证；无桌面合成器的测试不能验证 Windows/macOS 的透明、置顶和托盘外观。未制作已签名的 Windows/macOS 安装程序。
 
 没有权重时，可以显式构建 UI 验证版本：
 
@@ -124,3 +124,14 @@ python scripts/test-jni-host.py
 ```
 
 权重与大型生成包不提交到 Git；准备脚本会复用已有且校验通过的模型，避免重复下载。
+
+
+## Windows x64 便携包
+
+```sh
+npm run desktop:package:windows
+```
+
+该命令使用 `ai/windows-runtime-lock.json` 固定的 llama.cpp 官方 CPU 发布包（b11669），校验其 GitHub 发布页提供的 SHA-256。它与源码构建版共用同一 GGUF，但二进制发布版本单独记录。Windows 的 OpenMP 工作线程设为被动等待，避免空闲自旋。
+
+输出：`artifacts/desktop/MOMO-win32-x64/`。将整个目录压缩分发，解压后运行 `MOMO.exe`，不要单独移动 exe。Windows 需要 Visual C++ x64 运行库；如缺失，使用包内说明中的微软官方地址安装。当前环境不能执行 Windows 程序，因此只完成交叉打包、PE 格式和内容完整性检查，没有声称完成 Windows 实机验收。

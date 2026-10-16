@@ -1,0 +1,7 @@
+{
+  "source": "https://github.com/ggml-org/llama.cpp/releases/download/b11669/llama-b11669-bin-win-cpu-x64.zip",
+  "release": "b11669",
+  "archive_sha256": "37b3efcf962847ca869745fd4ccf7f5e7e8dacfeff9fa3523b4ca8cdc66d632b",
+  "platform": "win32",
+  "arch": "x64"
+}
