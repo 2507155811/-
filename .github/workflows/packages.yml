@@ -18,24 +18,26 @@ jobs:
       matrix:
         target: [windows, android]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '24'
           cache: npm
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         if: matrix.target == 'android'
         with:
           distribution: temurin
           java-version: '21'
-      - uses: android-actions/setup-android@v3
-        if: matrix.target == 'android'
       - name: Install Android toolchain
         if: matrix.target == 'android'
-        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'
+        run: |
+          # GitHub's Ubuntu runner already has the official Android SDK.
+          # Avoid reinstalling command-line tools through a third-party action.
+          test -n "$ANDROID_HOME"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'
       - run: npm ci
         env:
           ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
