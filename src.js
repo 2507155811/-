@@ -1,4 +1,6 @@
 import "./style.css";
+import { createDinosaur, EVOLUTION_STAGES } from "./dinosaur.js";
+import { initEvolution } from "./evolution.js";
 import { askAI, cancelAI, prepareMessages, initAIPanel } from "./local-ai.js";
 import { downloadFile } from "./downloads.js";
 import { initNativeUI } from "./native-ui.js";
@@ -56,17 +58,17 @@ let selectedModel = Number.isInteger(appearance.model)
   : 0;
 
 document.querySelector("#app").innerHTML = `
-<aside><a class="brand">✳ <b>MOMO<span>桌面上的小小陪伴</span></b></a><nav>${["我的宠物", "伙伴图鉴", "AI 聊天", "任务中心", "偏好设置"].map((x, i) => `<button data-page="${i}" class="${i === 0 ? "active" : ""}"><i>${["⌂", "◈", "✧", "☷", "⚙"][i]}</i>${x}</button>`).join("")}</nav><div class="side-note"><span class="dot"></span> 你的陪伴，正在发生<p>一点好奇，一点温柔。<br>让每一天都多一点期待。</p></div><small> M O M O / PREVIEW 0.5</small></aside>
+<aside><a class="brand">✳ <b>MOMO<span>桌面上的小小陪伴</span></b></a><nav>${["我的宠物", "伙伴图鉴", "AI 聊天", "任务中心", "偏好设置"].map((x, i) => `<button data-page="${i}" class="${i === 0 ? "active" : ""}"><i>${["⌂", "◈", "✧", "☷", "⚙"][i]}</i>${x}</button>`).join("")}</nav><div class="side-note"><span class="dot"></span> 你的陪伴，正在发生<p>一点好奇，一点温柔。<br>让每一天都多一点期待。</p></div><small> M O M O / EVOLUTION 0.6</small></aside>
 <main><header><div><span class="eyebrow">YOUR LITTLE COMPANION</span><h1 id="heading">今天，也一起好好生活。</h1><p id="subtitle">和 MOMO 打个招呼，开启属于你们的一天。</p></div><div class="avatar">M</div></header>
-<section id="home" class="page"><div class="stage"><div class="stage-top"><span class="pill"><span class="dot"></span> MOMO 的小世界</span><span class="tag">实时 3D · 拖动旋转</span></div><div id="canvas"></div><div class="bubble" id="bubble">嘿，你来啦！今天想一起做些什么？</div><div class="pet-label"><h2>MOMO <span>云朵精灵</span></h2><p>好奇心满满的，专属于你的小伙伴</p></div><div class="stage-tools"><button id="snapshot" aria-label="保存宠物照片">▣ 留个纪念</button><button id="focus-mode" aria-pressed="false">⛶ 陪伴模式</button></div><div class="stage-actions"><button id="wave">♡ 摸摸头</button><button id="feed">♧ 喂点心</button><button id="sleep">☾ 休息一下</button></div></div><div class="right-col"><article class="hello"><span class="eyebrow">A LITTLE ABOUT ME</span><h2>小小的我，<br>大大的陪伴。</h2><p>不赶时间，也不催促你。<br>我会在这里，陪你慢慢来。</p><div class="mood">✦ 心情 <b id="mood">开心冒泡</b></div></article><article><div class="card-title"><h3>我们的默契</h3><span>初次相遇</span></div><div class="progress"><i></i></div><p class="muted">从一句你好，开始熟悉彼此。</p><div class="stats"><div><b id="touches">0</b><span>今日互动</span></div><div><b id="days">01</b><span>陪伴天数</span></div></div></article><button class="model-link" data-open="1">◈ 换一个小伙伴 <span>↗</span></button></div></section><section class="world-panel" id="world-panel"><div><span class="eyebrow">MAKE YOURSELF AT HOME</span><h3>给陪伴换一种氛围</h3></div><div class="world-options"><button data-world="cloud" aria-pressed="true">☁ 云端小窝</button><button data-world="garden" aria-pressed="false">♧ 薄荷花园</button><button data-world="night" aria-pressed="false">☾ 星光晚安</button></div><label class="accessory-toggle"><input id="accessory" type="checkbox"> 戴上星星项链</label></section>
-<section id="models" class="page hidden"><div class="section-title"><h2>每一种模样，都值得被喜欢。</h2><p>更换外观，还是同一个伙伴。昵称、聊天与互动记忆始终保留。</p></div><div class="model-grid">${[
-  ["MOMO", "云朵精灵", "#e6e7ff"],
-  ["桃桃", "蜜桃精灵", "#ffe2d7"],
-  ["薄荷", "森林精灵", "#d9eee1"],
+<section id="home" class="page"><div class="stage"><div class="stage-top"><span class="pill"><span class="dot"></span> MOMO 的小世界</span><span class="tag">实时 3D · 拖动旋转</span></div><div id="canvas"></div><div class="bubble" id="bubble">嘿，你来啦！今天想一起做些什么？</div><div class="pet-label"><h2>MOMO <span>绒角幼兽</span></h2><p>好奇心满满的，专属于你的小伙伴</p></div><div class="stage-tools"><button id="snapshot" aria-label="保存宠物照片">▣ 留个纪念</button><button id="focus-mode" aria-pressed="false">⛶ 陪伴模式</button></div><div class="stage-actions"><button id="wave">♡ 摸摸头</button><button id="feed">♧ 喂点心</button><button id="sleep">☾ 休息一下</button></div></div><div class="right-col"><article class="hello"><span class="eyebrow">A LITTLE ABOUT ME</span><h2>小小的我，<br>大大的陪伴。</h2><p>不赶时间，也不催促你。<br>我会在这里，陪你慢慢来。</p><div class="mood">✦ 心情 <b id="mood">开心冒泡</b></div></article><article><div class="card-title"><h3>我们的默契</h3><span>初次相遇</span></div><div class="progress"><i></i></div><p class="muted">从一句你好，开始熟悉彼此。</p><div class="stats"><div><b id="touches">0</b><span>今日互动</span></div><div><b id="days">01</b><span>陪伴天数</span></div></div></article><button class="model-link" data-open="1">◈ 换一个小伙伴 <span>↗</span></button></div></section><section class="world-panel" id="world-panel"><div><span class="eyebrow">MAKE YOURSELF AT HOME</span><h3>给陪伴换一种氛围</h3></div><div class="world-options"><button data-world="cloud" aria-pressed="true">☁ 云端小窝</button><button data-world="garden" aria-pressed="false">♧ 薄荷花园</button><button data-world="night" aria-pressed="false">☾ 星光晚安</button></div><label class="accessory-toggle"><input id="accessory" type="checkbox"> 戴上星星项链</label></section>
+<section id="models" class="page hidden"><div class="section-title"><h2>同一个伙伴，不断长大的勇气。</h2><p>更换外观，还是同一个伙伴。昵称、聊天与互动记忆始终保留。</p></div><div class="model-grid">${[
+  ["MOMO", "绒角幼兽", "#e6e7ff"],
+  ["桃桃", "赤陶配色", "#ffe2d7"],
+  ["薄荷", "苔绿配色", "#d9eee1"],
 ]
   .map(
     ([n, d, c], i) =>
-      `<button class="model-card" data-model="${i}"><div class="mini-pet" style="--pet:${c}">●<span>• ᴗ •</span></div><h3>${n}</h3><p>${d}</p><span class="badge">${i === 0 ? "默认伙伴" : "点击换装"}</span></button>`,
+      `<button class="model-card" data-model="${i}"><div class="mini-pet dino-swatch" style="--pet:${c}"><img src="/evolution/stage-1.png" alt="龙系伙伴配色 ${i+1}"></div><h3>${n}</h3><p>${d}</p><span class="badge">${i === 0 ? "默认伙伴" : "点击换装"}</span></button>`,
   )
   .join(
     "",
@@ -74,7 +76,7 @@ document.querySelector("#app").innerHTML = `
 <section id="chat" class="page hidden"><article class="chat-card"><h2>和 MOMO 说说话</h2><p class="notice">本地推理 · 请先在偏好设置准备模型。仅原生版支持，聊天记录独立于外观保存。</p><div id="messages"><p class="message">今天有什么想分享给我的？我在听。</p></div><form id="chat-form"><input id="chat-input" maxlength="1000" required placeholder="把今天的小事告诉我…"><button class="primary" id="chat-send">发送 ↗</button><button class="secondary" type="button" id="chat-cancel" disabled>停止</button></form><p id="chat-status" class="muted" role="status"></p></article></section>
 <section id="tasks" class="page hidden"><article class="empty"><span>☷</span><h2>把琐事交给未来的我。</h2><p>任务功能稍后添加，先好好认识彼此。</p><p class="notice">淘宝 / 京东双 11 自动化尚未实现，当前不会读取或操控其他应用。</p></article></section>
 <section id="settings" class="page hidden"><article><h2>按你的节奏陪伴</h2><label class="setting">伙伴昵称<input id="pet-name" maxlength="20" value=""></label><label class="setting">安静模式<input type="checkbox" id="quiet"></label><label class="setting">角色显示大小<input id="size" type="range" min="70" max="130" value="100"></label><h3>属于我们的记忆</h3><p>记忆独立于角色外观保存。更换、导入或删除模型不会清除聊天记录、互动和偏好。</p><label for="memory-notes">希望伙伴记住的事情</label><textarea id="memory-notes" maxlength="10000" rows="4" placeholder="例如：我喜欢安静的陪伴，习惯晚上阅读。"></textarea><button class="secondary" id="save-memory">保存记忆</button><p class="muted">记忆保存在本机；原生版离线对话会参考这些内容。更换角色不会删除记忆，清除应用或浏览器数据前请先导出备份。</p><h3>本地 AI · 离线陪伴</h3><p>内置 AI 的电脑与安卓安装包包含已校验的 Qwen GGUF 权重和本地推理引擎。发送消息时按需加载，空闲 30 秒后卸载以减少资源占用；网页预览不提供原生推理。</p><p class="notice">可更换或导入 3D 模型，记忆始终独立保存。照片转 3D 暂缓实现，以控制安装体积和资源占用。原生版可在下方开启安卓悬浮宠物或电脑桌面宠物。</p><button class="secondary" id="reset">恢复默认设置</button></article></section>
-<footer><span>✧ 留一点空间，给可爱的事物。</span><span>本地交互原型 · Android / Desktop 设计</span></footer></main><div id="toast" role="status"></div>`;
+<footer><span>✧ 留一点空间，给可爱的事物。</span><span>离线陪伴 · Android / Windows</span></footer></main><div id="toast" role="status"></div>`;
 const pages = ["home", "models", "chat", "tasks", "settings"];
 function openPage(i) {
   pages.forEach((p, j) =>
@@ -113,10 +115,13 @@ function toast(s) {
 const host = document.getElementById("canvas"),
   scene = new T.Scene(),
   camera = new T.PerspectiveCamera(35, 1, 0.1, 100);
-camera.position.set(0, 2.6, 7.5);
+camera.position.set(0, 2.5, 7.1);
 const renderer = new T.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = T.PCFSoftShadowMap;
+renderer.toneMapping = T.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
 renderer.setClearColor(0, 0);
 host.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -126,10 +131,12 @@ controls.minDistance = 4;
 controls.maxDistance = 11;
 controls.maxPolarAngle = Math.PI / 2;
 controls.enableDamping = true;
-scene.add(new T.HemisphereLight(0xffffff, 0xb5a7ce, 3));
-const light = new T.DirectionalLight(0xfff6ee, 4);
+scene.add(new T.HemisphereLight(0xffffff, 0xa7b99c, 2));
+const light = new T.DirectionalLight(0xfff4dd, 3);
 light.position.set(3, 6, 4);
 light.castShadow = true;
+light.shadow.mapSize.set(1024,1024);
+light.shadow.normalBias = 0.025;
 scene.add(light);
 const floor = new T.Mesh(
   new T.CircleGeometry(2.15, 64),
@@ -147,53 +154,10 @@ let current = pet,
   asleep = false,
   touch = journal.touches,
   jump = 0;
-const bodyMat = new T.MeshStandardMaterial({
-  color: 0xdad7f7,
-  roughness: 0.58,
-});
-const white = new T.MeshStandardMaterial({ color: 0xfffbf9, roughness: 0.7 });
-const dark = new T.MeshStandardMaterial({ color: 0x373249, roughness: 0.4 });
-function ball(parent, mat, x, y, z, sx, sy, sz) {
-  const m = new T.Mesh(new T.SphereGeometry(1, 40, 28), mat);
-  m.position.set(x, y, z);
-  m.scale.set(sx, sy, sz);
-  m.castShadow = true;
-  parent.add(m);
-  return m;
-}
-ball(pet, bodyMat, 0, 1.12, 0, 0.91, 1, 0.72);
-ball(pet, white, 0, 0.96, 0.54, 0.68, 0.68, 0.25);
-const eyes = [],
-  highlights = [],
-  arms = [];
-[-1, 1].forEach((s) => {
-  const ear = ball(pet, bodyMat, s * 0.58, 2.02, -0.02, 0.25, 0.59, 0.24);
-  ear.rotation.z = -s * 0.27;
-  ball(pet, white, s * 0.59, 2.05, 0.17, 0.12, 0.35, 0.07);
-  ball(pet, bodyMat, s * 0.55, 0.2, 0.24, 0.33, 0.23, 0.39);
-  arms.push(ball(pet, bodyMat, s * 0.87, 0.94, 0.05, 0.23, 0.36, 0.25));
-  eyes.push(ball(pet, dark, s * 0.29, 1.36, 0.69, 0.075, 0.105, 0.045));
-  highlights.push(ball(pet, white, s * 0.27, 1.39, 0.73, 0.022, 0.029, 0.015));
-  ball(
-    pet,
-    new T.MeshStandardMaterial({ color: 0xf0b7c9 }),
-    s * 0.47,
-    1.14,
-    0.69,
-    0.13,
-    0.065,
-    0.025,
-  );
-});
-ball(pet, dark, 0, 1.15, 0.79, 0.045, 0.03, 0.02);
-const smile = new T.Mesh(
-  new T.TorusGeometry(0.11, 0.015, 8, 24, Math.PI),
-  dark,
-);
-smile.rotation.z = Math.PI;
-smile.position.set(0, 1.1, 0.79);
-pet.add(smile);
-ball(pet, white, 0.74, 0.63, -0.47, 0.32, 0.32, 0.32);
+let evolutionStage = readRecord("momo-evolution", {stage:0, highest:0}).stage;
+let creature = createDinosaur(evolutionStage, selectedModel);
+let creatureKey = `${evolutionStage}:${selectedModel}`;
+pet.add(creature.root);
 const necklace = new T.Group();
 pet.add(necklace);
 const cord = new T.Mesh(
@@ -249,7 +213,7 @@ for (let i = 0; i < 12; i++) {
 }
 let world = appearance.world || "cloud";
 const worldThemes = {
-  cloud: { floor: 0xe2dbef, light: 0xfff6ee },
+  cloud: { floor: 0xbfc5a5, light: 0xfff6ee },
   garden: { floor: 0xd0e4d5, light: 0xf3ffe6 },
   night: { floor: 0x68658c, light: 0xcbd3ff },
 };
@@ -300,13 +264,7 @@ function renderFrame() {
       : 0;
   if (jump > 0) jump = Math.max(0, jump - dt * 5);
   current.rotation.z = asleep ? 0.16 : Math.sin(t) * 0.018;
-  const blink = asleep ? 0.08 : Math.sin(t * 1.3) > 0.995 ? 0.09 : 1;
-  eyes.forEach((e) => (e.scale.y = 0.105 * blink));
-  highlights.forEach((e) => (e.visible = blink > 0.5));
-  arms.forEach(
-    (a, i) =>
-      (a.rotation.z = (i ? 1 : -1) * (jump > 0 ? Math.sin(jump) * 0.9 : 0.08)),
-  );
+  if (current === pet) creature.animate(t, {asleep, jump});
   sparkles.rotation.y = t * 0.07;
   sparkles.children.forEach((m, i) => {
     m.position.y = 0.7 + (i % 4) * 0.5 + Math.sin(t + i) * 0.08;
@@ -383,6 +341,7 @@ function interact(text, mood) {
   journal.total++;
   writeStore("momo-journal", journal);
   refreshStats();
+  window.dispatchEvent(new Event("momo-growth"));
 }
 function refreshStats() {
   syncJournalDay();
@@ -766,12 +725,15 @@ document.getElementById("save-memory").onclick = () => {
 function applyModel() {
   document.querySelector(".pet-label p").textContent =
     "好奇心满满的，专属于你的小伙伴";
-  bodyMat.color.set([0xdad7f7, 0xf3c8b7, 0xb8d9c5][selectedModel]);
-  document.querySelector(".pet-label h2 span").textContent = [
-    "云朵精灵",
-    "蜜桃精灵",
-    "森林精灵",
-  ][selectedModel];
+  const key = `${evolutionStage}:${selectedModel}`;
+  if (key !== creatureKey) {
+    pet.remove(creature.root);
+    dispose(creature.root);
+    creature = createDinosaur(evolutionStage, selectedModel);
+    pet.add(creature.root);
+    creatureKey = key;
+  }
+  document.querySelector(".pet-label h2 span").textContent = EVOLUTION_STAGES[evolutionStage].name;
   document.querySelectorAll("[data-model]").forEach((b) => {
     const selected = +b.dataset.model === selectedModel;
     b.setAttribute("aria-pressed", String(selected));
@@ -851,6 +813,15 @@ readModel()
     modelStatus.textContent = "浏览器模型存储不可用，仍可临时导入。";
   });
 
+initEvolution({
+  toast,
+  openHome: () => openPage(0),
+  onChange: stage => {
+    evolutionStage = stage;
+    useBuiltin(selectedModel);
+    refreshRendering();
+  },
+});
 if (new URLSearchParams(location.search).get("pet") !== "1") {
   initAIPanel();
   initCompanion({
@@ -938,3 +909,11 @@ document.getElementById("model-animation").onchange = (e) => {
     mixer.clipAction(activeAnimations[index]).play();
   refreshRendering();
 };
+
+window.momoDesktop?.onNavigate?.(page => {
+  if (Number.isInteger(page) && page >= 0 && page < pages.length) openPage(page);
+});
+if (new URLSearchParams(location.search).get("pet") !== "1") {
+  const initialPage = Number(new URLSearchParams(location.search).get("page"));
+  if (Number.isInteger(initialPage) && initialPage >= 0 && initialPage < pages.length) openPage(initialPage);
+}

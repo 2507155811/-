@@ -69,7 +69,7 @@ test("custom model persists, exports, reimports and deletes", async ({
   await expect(page.locator("#import-status")).toContainText("已删除");
   await expect(page.locator("#restore-model")).toBeDisabled();
   await page.reload();
-  await expect(page.locator(".pet-label h2 span")).toHaveText("云朵精灵");
+  await expect(page.locator(".pet-label h2 span")).toHaveText("绒角幼兽");
   expect(errors).toEqual([]);
 });
 test("mobile preferences and interaction survive reload", async ({ page }) => {

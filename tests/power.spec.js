@@ -69,5 +69,5 @@ test("web chat preserves the message and reports missing native AI honestly", as
 });
 test('oversized custom mesh is rejected without replacing the companion',async({page})=>{
  await page.goto('/');await page.locator('[data-page="1"]').click();const data=Buffer.alloc(100002*3*4);const model={asset:{version:'2.0'},scene:0,scenes:[{nodes:[0]}],nodes:[{mesh:0}],meshes:[{primitives:[{attributes:{POSITION:0}}]}],buffers:[{uri:'data:application/octet-stream;base64,'+data.toString('base64'),byteLength:data.length}],bufferViews:[{buffer:0,byteLength:data.length}],accessors:[{bufferView:0,componentType:5126,count:100002,type:'VEC3',min:[0,0,0],max:[1,1,1]}]};
- await page.locator('#model-file').setInputFiles({name:'large.gltf',mimeType:'model/gltf+json',buffer:Buffer.from(JSON.stringify(model))});await expect(page.locator('#import-status')).toContainText('节能预算');await expect(page.locator('.pet-label h2 span')).toHaveText('云朵精灵');
+ await page.locator('#model-file').setInputFiles({name:'large.gltf',mimeType:'model/gltf+json',buffer:Buffer.from(JSON.stringify(model))});await expect(page.locator('#import-status')).toContainText('节能预算');await expect(page.locator('.pet-label h2 span')).toHaveText('绒角幼兽');
 });

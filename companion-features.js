@@ -47,7 +47,7 @@ export function initCompanion({ toast, save, say, isQuiet, interactionTotal }) {
     $("install-status").textContent = await installApp();
   };
   enableOffline().then((status) => ($("offline-status").textContent = status));
-  const persistCare = () => save("momo-care", care),
+  const persistCare = () => { const ok = save("momo-care", care); window.dispatchEvent(new Event("momo-growth")); return ok; },
     persistPlanner = () => {
       const result = save("momo-planner", planner);
       scheduleTick();

@@ -36,6 +36,11 @@ if (!process.argv.includes("--source-only")) {
     "-DBUILD_SHARED_LIBS=OFF",
     "-DGGML_NATIVE=OFF",
     "-DGGML_OPENMP=OFF",
+    "-DGGML_BACKEND_DL=OFF",
+    ...(process.platform === "win32" ? [
+      "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded",
+      "-DGGML_AVX=OFF", "-DGGML_AVX2=OFF", "-DGGML_FMA=OFF", "-DGGML_F16C=OFF", "-DGGML_SSE42=OFF",
+    ] : []),
     "-DLLAMA_BUILD_TESTS=OFF",
     "-DLLAMA_BUILD_EXAMPLES=OFF",
     "-DLLAMA_OPENSSL=OFF",

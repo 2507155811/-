@@ -1,5 +1,10 @@
 const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("momoDesktop", {
+  onNavigate: (callback) => {
+    const listener = (_event, page) => callback(page);
+    ipcRenderer.on("momo:navigate", listener);
+    return () => ipcRenderer.removeListener("momo:navigate", listener);
+  },
   onPower: (callback) => {
     const listener = (_event, paused) => callback(!!paused);
     ipcRenderer.on("momo:power", listener);
@@ -7,12 +12,14 @@ contextBridge.exposeInMainWorld("momoDesktop", {
   },
   openPet: () => ipcRenderer.invoke("momo:native", "openPet"),
   hidePet: () => ipcRenderer.invoke("momo:native", "hidePet"),
-  openDashboard: () => ipcRenderer.invoke("momo:native", "dashboard"),
+  openDashboard: (page = 0) => ipcRenderer.invoke("momo:native", "dashboard", page),
+  setStartupPet: value => ipcRenderer.invoke("momo:native", "startupPet", !!value),
   setClickThrough: (value) =>
     ipcRenderer.invoke("momo:native", "clickThrough", !!value),
   setAlwaysOnTop: (value) =>
     ipcRenderer.invoke("momo:native", "alwaysOnTop", !!value),
   aiStatus: () => ipcRenderer.invoke("momo:native", "aiStatus"),
+  aiLoad: () => ipcRenderer.invoke("momo:native", "aiLoad"),
   aiSelect: () => ipcRenderer.invoke("momo:native", "aiSelect"),
   aiChat: (messages) => ipcRenderer.invoke("momo:native", "aiChat", messages),
   aiCancel: () => ipcRenderer.invoke("momo:native", "aiCancel"),

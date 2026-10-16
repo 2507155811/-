@@ -55,3 +55,20 @@
   color: #8e76a8;
   font-size: 16px;
 }
+/* Compact desktop companion: show controls on intent, keep the pet unobstructed. */
+.native-pet .native-pet-toolbar { top:8px;left:18px;right:18px;border-radius:14px;background:#f7f9f0ec;border:1px solid #dce5d0;box-shadow:0 4px 15px #1933240b;color:#496144;opacity:0;transition:opacity .16s; }
+.native-pet .stage:hover .native-pet-toolbar,.native-pet .stage:focus-within .native-pet-toolbar { opacity:1; }
+.native-pet-toolbar .pet-drag-handle { font-size:15px;letter-spacing:.12em; }
+.pet-drag-handle b { font-size:10px;letter-spacing:.16em; }
+.native-pet-toolbar button { color:#4f6748;font-size:20px;min-width:28px; }
+.native-pet .stage-actions { opacity:0;transition:opacity .16s;bottom:12px; }
+.native-pet .stage:hover .stage-actions,.native-pet .stage:focus-within .stage-actions { opacity:1; }
+.native-pet .stage-actions button { font-size:11px;padding:9px 11px;background:#f6f9f0ed;border:1px solid #d9e3ce;color:#496144;border-radius:13px; }
+#pet-quick-menu { position:absolute;top:49px;right:18px;width:215px;z-index:20;background:#fcfdf7f5;border:1px solid #dfe7d5;padding:15px;border-radius:17px;box-shadow:0 12px 35px #233e2820; }
+#pet-quick-menu[hidden] {display:none;}
+#pet-quick-menu strong { display:block;color:#8a947c;font-size:10px;letter-spacing:.12em;margin:4px 0 12px; }
+#pet-quick-menu button { display:flex;align-items:center;justify-content:space-between;width:100%;text-align:left;background:none;border:0;color:#38523b;padding:11px 8px;font-size:12px;border-radius:8px; }
+#pet-quick-menu button:hover {background:#eaf0df;}
+#pet-quick-menu button span {font-size:9px;color:#9aab8d;}
+.native-pet .preview-exit {top:52px;right:18px;}
+@media(prefers-reduced-motion:reduce){.native-pet .native-pet-toolbar,.native-pet .stage-actions{transition:none;}}

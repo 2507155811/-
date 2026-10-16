@@ -43,26 +43,38 @@ export async function unloadAI() {
 export function initAIPanel() {
   const panel = document.createElement("article");
   panel.className = "extended-settings";
-  panel.innerHTML = `<h2>本地 AI · Qwen 0.5B</h2><p>电脑和安卓使用同一份 Q4_K_M GGUF 权重。按需推理，2 个 CPU 线程、2048 上下文、最多 128 个输出 token；空闲 30 秒卸载。</p><div class="backup-actions"><button class="primary" id="ai-prepare">准备 / 选择模型</button><button class="secondary" id="ai-unload">卸载运行中的模型</button><button class="secondary" id="ai-refresh">刷新状态</button></div><p id="ai-status" role="status" class="muted"></p><p class="muted">模型权重需要随安装资源准备；没有模型时不会生成预设的 AI 回复。长聊天只取近期片段和记事进入上下文，完整记录仍独立保留。</p>`;
+  panel.innerHTML = `<h2>本地 AI · Qwen 0.5B</h2><p>电脑和安卓使用同一份 Q4_K_M GGUF 权重。按需推理，2 个 CPU 线程、2048 上下文、最多 128 个输出 token；空闲 30 秒卸载。</p><div class="backup-actions"><button class="primary" id="ai-prepare">加载 / 检查 AI</button><button class="secondary" id="ai-select">选择其他 GGUF</button><button class="secondary" id="ai-unload">卸载运行中的模型</button><button class="secondary" id="ai-refresh">刷新状态</button></div><p id="ai-status" role="status" class="muted"></p><p class="muted">模型权重需要随安装资源准备；没有模型时不会生成预设的 AI 回复。长聊天只取近期片段和记事进入上下文，完整记录仍独立保留。</p>`;
   document.getElementById("settings").appendChild(panel);
   async function refresh() {
     try {
       const status = await aiStatus();
       document.getElementById("ai-status").textContent =
-        `推理引擎：${status.runtimeAvailable ? "已集成" : "不可用"} · 权重：${status.modelAvailable ? "已准备" : status.bundledModelAvailable ? "已内置，首次使用自动准备" : "尚未安装"} · 状态：${status.loaded ? "已加载" : "未加载"}`;
+        `推理引擎：${status.runtimeAvailable ? "已集成" : "不可用"} · 权重：${status.modelAvailable ? "已准备" : status.bundledModelAvailable ? "已内置，首次使用自动准备" : "尚未安装"} · 状态：${status.busy ? "运行中" : status.loaded ? "已加载" : "待命（发送消息时自动加载）"}${status.lastError ? " · 上次错误：" + status.lastError : ""}${status.lastError && status.logFile ? " · 诊断文件：" + status.logFile : ""}`;
     } catch {
       document.getElementById("ai-status").textContent =
         "无法读取原生推理状态。";
     }
   }
+  document.getElementById("ai-select").hidden = !window.momoDesktop;
+  document.getElementById("ai-select").onclick = async () => {
+    try { await window.momoDesktop.aiSelect(); await refresh(); }
+    catch(error) { document.getElementById("ai-status").textContent = error.message; }
+  };
   document.getElementById("ai-prepare").onclick = async () => {
+    const button = document.getElementById("ai-prepare");
+    button.disabled = true;
+    document.getElementById("ai-status").textContent = "正在检查并准备本地 AI…";
+    window.dispatchEvent(new CustomEvent("momo-ai-busy", {detail:true}));
     try {
-      if (window.momoDesktop) await window.momoDesktop.aiSelect();
+      if (window.momoDesktop) await window.momoDesktop.aiLoad();
       else if (isAndroid()) await Native.loadBundledModel();
       else throw Error("请使用电脑原生版或安卓安装包。");
       await refresh();
     } catch (error) {
       document.getElementById("ai-status").textContent = error.message;
+    } finally {
+      button.disabled = false;
+      window.dispatchEvent(new CustomEvent("momo-ai-busy", {detail:false}));
     }
   };
   document.getElementById("ai-unload").onclick = async () => {

@@ -1,9 +1,25 @@
 name: Downloadable Windows and Android packages
 on:
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: Publish a Release (requires repository release permission)
+        type: boolean
+        default: false
   push:
     branches: [main]
-    paths: [.github/workflows/packages.yml, src.js]
+    paths:
+      - .github/workflows/packages.yml
+      - src.js
+      - dinosaur.js
+      - evolution.js
+      - evolution.css
+      - desktop/**
+      - native-ui.js
+      - native.css
+      - local-ai.js
+      - scripts/prepare-windows-engine.mjs
+      - scripts/prepare-llama.mjs
 permissions:
   contents: read
 concurrency:
@@ -11,12 +27,19 @@ concurrency:
   cancel-in-progress: false
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        target: [windows, android]
+        include:
+          - target: windows
+            os: windows-latest
+          - target: android
+            os: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -47,27 +70,43 @@ jobs:
         if: matrix.target == 'windows'
         run: |
           npm run desktop:package:windows
-          mkdir -p release
-          cd artifacts/desktop
-          zip -q -r ../../release/MOMO-Windows-x64-with-AI.zip MOMO-win32-x64
+          npm run test:ai
+          python - <<'PY'
+          import pathlib, zipfile
+          root=pathlib.Path('artifacts/desktop/MOMO-win32-x64')
+          pathlib.Path('release').mkdir(exist_ok=True)
+          with zipfile.ZipFile('release/MOMO-Windows-x64-with-AI.zip','w',zipfile.ZIP_DEFLATED,compresslevel=6) as z:
+              for f in root.rglob('*'):
+                  if f.is_file(): z.write(f, pathlib.Path('MOMO-Windows-x64')/f.relative_to(root))
+          PY
       - name: Package Android arm64
         if: matrix.target == 'android'
         run: |
           chmod +x android/gradlew
           npm run android:build
           mkdir -p release
-          cp android/app/build/outputs/apk/debug/app-debug.apk release/momo-0.5-with-ai-debug.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk release/momo-0.6-with-ai-debug.apk
+      - name: Verify packaged Windows engine
+        if: matrix.target == 'windows'
+        run: |
+          node scripts/test-packaged-engine.mjs
       - name: Generate checksums
         run: |
           cd release
           sha256sum * > SHA256SUMS-${{ matrix.target }}.txt
       - uses: actions/upload-artifact@v4
+        id: upload
         with:
           name: momo-${{ matrix.target }}
           path: release/*
           compression-level: 0
           retention-days: 14
+      - name: Show installation download link
+        run: |
+          echo '## Installation download' >> "$GITHUB_STEP_SUMMARY"
+          echo '[Download ${{ matrix.target }} package](${{ steps.upload.outputs.artifact-url }}) (sign in to GitHub; extract the downloaded archive)' >> "$GITHUB_STEP_SUMMARY"
   release:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_release
     needs: build
     runs-on: ubuntu-24.04
     permissions:
@@ -81,7 +120,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: momo-0.5-build-${{ github.run_id }}
+          RELEASE_TAG: momo-0.6-build-${{ github.run_id }}
           SOURCE_SHA: ${{ github.sha }}
         run: |
-          gh release create "$RELEASE_TAG" release/* --target "$SOURCE_SHA" --title 'MOMO 0.5 · Windows 与安卓（内置 AI）' --notes 'Windows：完整解压 ZIP 后运行 MOMO.exe；缺少 VC++ 运行库时安装 https://aka.ms/vs/17/release/vc_redist.x64.exe 。安卓：适用于 ARM64 的调试版 APK。两端均内置 Qwen2.5-0.5B Q4_K_M 离线模型。更换宠物形象不会删除记忆。尚未完成 Windows 和安卓实机验证；不包含活动任务自动化。' --latest
+          gh release create "$RELEASE_TAG" release/* --target "$SOURCE_SHA" --title 'MOMO 0.6 · Windows 与安卓（内置 AI）' --notes 'Windows：完整解压 ZIP 后运行 MOMO.exe；缺少 VC++ 运行库时安装 https://aka.ms/vs/17/release/vc_redist.x64.exe 。安卓：适用于 ARM64 的调试版 APK。两端均内置 Qwen2.5-0.5B Q4_K_M 离线模型。更换宠物形象不会删除记忆。尚未完成 Windows 和安卓实机验证；不包含活动任务自动化。' --latest

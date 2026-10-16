@@ -34,6 +34,17 @@ protocol.registerSchemesAsPrivileged([
 ]);
 const profile = process.env.MOMO_PROFILE_DIR;
 if (profile) app.setPath("userData", path.resolve(profile));
+ai.logFile = path.join(app.getPath("userData"), "MOMO-ai-diagnostic.log");
+const desktopSettingsFile = path.join(app.getPath("userData"), "desktop-settings.json");
+let desktopSettings = { startupPet: true };
+try {
+  const saved = JSON.parse(fs.readFileSync(desktopSettingsFile, "utf8"));
+  if (typeof saved.startupPet === "boolean") desktopSettings.startupPet = saved.startupPet;
+} catch {}
+function saveDesktopSettings() {
+  fs.mkdirSync(path.dirname(desktopSettingsFile), {recursive:true});
+  fs.writeFileSync(desktopSettingsFile, JSON.stringify(desktopSettings), "utf8");
+}
 const lock = app.requestSingleInstanceLock();
 if (!lock) app.quit();
 function secureWindow(win) {
@@ -56,10 +67,12 @@ function makeWindow(options) {
   secureWindow(win);
   return win;
 }
-function openDashboard() {
+function openDashboard(page = 0) {
+  page = Number.isInteger(page) && page >= 0 && page <= 4 ? page : 0;
   if (dashboard && !dashboard.isDestroyed()) {
     dashboard.show();
     dashboard.focus();
+    dashboard.webContents.send("momo:navigate", page);
     return;
   }
   dashboard = makeWindow({
@@ -73,7 +86,7 @@ function openDashboard() {
     show: false,
     icon: path.join(root, "icon-192.png"),
   });
-  dashboard.loadURL("momo://app/");
+  dashboard.loadURL(`momo://app/?page=${page}`);
   dashboard.once("ready-to-show", () => dashboard.show());
   dashboard.on("hide", () => ai.cancel());
   dashboard.on("minimize", () => ai.cancel());
@@ -115,7 +128,7 @@ function setPassThrough(value) {
     pet.setIgnoreMouseEvents(passThrough, { forward: true });
   return passThrough;
 }
-app.on("second-instance", openDashboard);
+app.on("second-instance", () => openDashboard());
 app
   .whenReady()
   .then(async () => {
@@ -155,15 +168,21 @@ app
           pet?.hide();
           return true;
         case "dashboard":
-          openDashboard();
+          openDashboard(value);
           return true;
         case "clickThrough":
           return setPassThrough(value);
         case "alwaysOnTop":
           pet?.setAlwaysOnTop(!!value);
           return !!value;
+        case "startupPet":
+          desktopSettings.startupPet = !!value;
+          saveDesktopSettings();
+          return desktopSettings.startupPet;
         case "aiStatus":
           return ai.status();
+        case "aiLoad":
+          return ai.load();
         case "aiSelect": {
           const result = await dialog.showOpenDialog({
             properties: ["openFile"],
@@ -196,6 +215,7 @@ app
           return {
             platform: process.platform,
             petVisible: !!pet?.isVisible(),
+            startupPet: desktopSettings.startupPet,
             clickThrough: passThrough,
           };
         default:
@@ -211,16 +231,17 @@ app
       tray.setToolTip("MOMO · 桌面伙伴");
       tray.setContextMenu(
         Menu.buildFromTemplate([
-          { label: "打开控制面板", click: openDashboard },
+          { label: "打开控制面板", click: () => openDashboard() },
           { label: "显示桌面宠物", click: openPet },
           { label: "恢复宠物鼠标交互", click: () => setPassThrough(false) },
           { type: "separator" },
           { label: "退出 MOMO", click: () => app.quit() },
         ]),
       );
-      tray.on("double-click", openDashboard);
+      tray.on("double-click", () => openDashboard());
     }
-    openDashboard();
+    if (process.argv.includes("--momo-smoke") || !desktopSettings.startupPet) openDashboard();
+    else openPet();
   })
   .catch((error) => {
     dialog.showErrorBox("MOMO 启动失败", error.message);
@@ -229,7 +250,7 @@ app
 app.on("window-all-closed", () => {
   if (!tray) app.quit();
 });
-app.on("activate", openDashboard);
+app.on("activate", () => openDashboard());
 
 app.on("before-quit", () => ai.cancel());
 

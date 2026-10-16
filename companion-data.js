@@ -6,6 +6,7 @@ export const BACKUP_KEYS = [
   "momo-care",
   "momo-planner",
   "momo-preferences",
+  "momo-evolution",
 ];
 const object = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 const text = (v, max) => typeof v === "string" && v.length <= max;
@@ -32,6 +33,8 @@ export function validateRecord(key, v) {
         ["cloud", "garden", "night"].includes(v.world) &&
         typeof v.accessory === "boolean"
       );
+    case "momo-evolution":
+      return Number.isInteger(v.stage) && num(v.stage, 0, 3) && Number.isInteger(v.highest) && num(v.highest, v.stage, 3);
     case "momo-memory":
       return (
         text(v.notes, 10000) &&

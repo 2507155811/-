@@ -72,7 +72,7 @@ if (platform === "win32")
   for (const folder of out)
     await writeFile(
       path.join(folder, "首次使用说明.txt"),
-      "\ufeffMOMO Windows 64 位便携版（内置 Qwen AI）\r\n\r\n1. 将整个文件夹解压到固定位置。不要只复制 MOMO.exe。\r\n2. 双击 MOMO.exe，进入偏好设置可显示桌面宠物。\r\n3. AI 权重已内置，可离线对话。首次加载需要一点时间。\r\n4. 如果 AI 启动提示缺少 VCRUNTIME140 / MSVCP140，请安装微软官方 Visual C++ x64 运行库后重试：\r\nhttps://aka.ms/vs/17/release/vc_redist.x64.exe\r\n\r\n该包已完成文件、模型校验，尚未在 Windows 实机验证。\r\n",
+      "\ufeffMOMO Windows 64 位便携版（内置 Qwen AI）\r\n\r\n1. 将整个文件夹解压到固定位置。不要只复制 MOMO.exe。\r\n2. 双击 MOMO.exe，进入偏好设置可显示桌面宠物。\r\n3. AI 权重已内置，可离线对话。首次加载需要一点时间。启动默认显示悬浮宠物，双击宠物打开聊天；右上角菜单进入进化实验室。\r\n4. 如果 AI 启动提示缺少 VCRUNTIME140 / MSVCP140，请安装微软官方 Visual C++ x64 运行库后重试：\r\nhttps://aka.ms/vs/17/release/vc_redist.x64.exe\r\n\r\n0.6 版本使用兼容 CPU 指令、静态链接运行库的引擎。Windows 自动构建会验证真实模型推理；尚未完成用户设备上的实机验证。\r\n",
     );
 await rm(stage, { recursive: true, force: true });
 console.log("Desktop package:", out.join(", "));
