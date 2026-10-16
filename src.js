@@ -481,7 +481,10 @@ document
 document.getElementById("model-animation").disabled = true;
 function useBuiltin(index = selectedModel) {
   modelRevision++;
-  document.getElementById("model-animation").replaceChildren(new Option("无自带动画","-1"));document.getElementById("model-animation").disabled=true;
+  document
+    .getElementById("model-animation")
+    .replaceChildren(new Option("无自带动画", "-1"));
+  document.getElementById("model-animation").disabled = true;
   activeAsset = "builtin";
   activeAnimations = [];
   if (current !== pet) {
@@ -732,7 +735,7 @@ document.getElementById("chat-form").onsubmit = async (e) => {
   document.getElementById("chat-send").disabled = true;
   document.getElementById("chat-cancel").disabled = false;
   document.getElementById("chat-status").textContent =
-    "正在本机推理，宠物动画暂时休息…";
+    "正在本机准备模型或推理，宠物动画暂时休息…";
   window.dispatchEvent(new CustomEvent("momo-ai-busy", { detail: true }));
   try {
     const result = await askAI(prepareMessages(memory, nameInput.value));

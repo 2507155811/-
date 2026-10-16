@@ -49,7 +49,7 @@ export function initAIPanel() {
     try {
       const status = await aiStatus();
       document.getElementById("ai-status").textContent =
-        `推理引擎：${status.runtimeAvailable ? "已集成" : "不可用"} · 权重：${status.modelAvailable ? "已准备" : "尚未安装"} · 状态：${status.loaded ? "已加载" : "未加载"}`;
+        `推理引擎：${status.runtimeAvailable ? "已集成" : "不可用"} · 权重：${status.modelAvailable ? "已准备" : status.bundledModelAvailable ? "已内置，首次使用自动准备" : "尚未安装"} · 状态：${status.loaded ? "已加载" : "未加载"}`;
     } catch {
       document.getElementById("ai-status").textContent =
         "无法读取原生推理状态。";

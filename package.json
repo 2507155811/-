@@ -18,7 +18,9 @@
     "test:desktop": "npm run build && node scripts/test-desktop.mjs",
     "desktop:prepare": "node scripts/prepare-electron.mjs",
     "desktop:package": "npm run desktop:prepare && npm run build && node scripts/package-desktop.mjs",
-    "desktop:package:ui": "npm run desktop:prepare && npm run build && node scripts/package-desktop.mjs --ui-only"
+    "desktop:package:ui": "npm run desktop:prepare && npm run build && node scripts/package-desktop.mjs --ui-only",
+    "test:ai": "node scripts/test-ai.mjs",
+    "test:desktop:ai": "npm run build && node scripts/test-desktop-ai.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^7.6.9",
