@@ -1,0 +1,85 @@
+name: Downloadable Windows and Android packages
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [.github/workflows/packages.yml]
+permissions:
+  contents: read
+concurrency:
+  group: momo-packages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [windows, android]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-java@v4
+        if: matrix.target == 'android'
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+        if: matrix.target == 'android'
+      - name: Install Android toolchain
+        if: matrix.target == 'android'
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'
+      - run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      - name: Download and verify bundled AI model
+        run: npm run ai:model
+      - name: Package Windows x64
+        if: matrix.target == 'windows'
+        run: |
+          npm run desktop:package:windows
+          mkdir -p release
+          cd artifacts/desktop
+          zip -q -r ../../release/MOMO-Windows-x64-with-AI.zip MOMO-win32-x64
+      - name: Package Android arm64
+        if: matrix.target == 'android'
+        run: |
+          chmod +x android/gradlew
+          npm run android:build
+          mkdir -p release
+          cp android/app/build/outputs/apk/debug/app-debug.apk release/momo-0.5-with-ai-debug.apk
+      - name: Generate checksums
+        run: |
+          cd release
+          sha256sum * > SHA256SUMS-${{ matrix.target }}.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: momo-${{ matrix.target }}
+          path: release/*
+          compression-level: 0
+          retention-days: 14
+  release:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+      - name: Publish installation downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: momo-0.5-build-${{ github.run_id }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          gh release create "$RELEASE_TAG" release/* --target "$SOURCE_SHA" --title 'MOMO 0.5 · Windows 与安卓（内置 AI）' --notes 'Windows：完整解压 ZIP 后运行 MOMO.exe；缺少 VC++ 运行库时安装 https://aka.ms/vs/17/release/vc_redist.x64.exe 。安卓：适用于 ARM64 的调试版 APK。两端均内置 Qwen2.5-0.5B Q4_K_M 离线模型。更换宠物形象不会删除记忆。尚未完成 Windows 和安卓实机验证；不包含活动任务自动化。' --latest
