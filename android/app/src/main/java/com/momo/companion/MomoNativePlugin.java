@@ -138,7 +138,7 @@ public class MomoNativePlugin extends Plugin {
     }
     @PluginMethod public void loadBundledModel(PluginCall call){
         if(!busy.compareAndSet(false,true)){call.reject("正在准备或推理，请先停止");return;}
-        handler.removeCallbacks(unload);requestCancelled=false;nativeBegin();lastError=null;
+        handler.removeCallbacks(unload);requestCancelled=false;nativeBegin();lastError=null;PetOverlayService.setAIActive(true);
         worker.execute(()->{
             try{
                 ensureBundledModel();
@@ -147,7 +147,7 @@ public class MomoNativePlugin extends Plugin {
                 call.resolve();
             }
             catch(Exception error){lastError="AI 加载失败或已停止："+error.getMessage();call.reject(lastError,error);}
-            finally{busy.set(false);if(!destroyed)handler.postDelayed(unload,30000);}
+            finally{busy.set(false);PetOverlayService.setAIActive(false);if(!destroyed)handler.postDelayed(unload,30000);}
         });
     }
     @PluginMethod public void chat(PluginCall call){
@@ -157,7 +157,7 @@ public class MomoNativePlugin extends Plugin {
         final String prompt=call.getString("prompt","");
         if(prompt.length()>16000){call.reject("消息过长");return;}
         if(!busy.compareAndSet(false,true)){call.reject("正在回复，请稍候");return;}
-        handler.removeCallbacks(unload);requestCancelled=false;nativeBegin();lastError=null;
+        handler.removeCallbacks(unload);requestCancelled=false;nativeBegin();lastError=null;PetOverlayService.setAIActive(true);
         worker.execute(()->{
             try{
                 ensureBundledModel();
@@ -166,7 +166,7 @@ public class MomoNativePlugin extends Plugin {
                 byte[] response=nativeComplete(prompt.getBytes(StandardCharsets.UTF_8),threads,maxTokens);
                 JSObject result=new JSObject();result.put("text",new String(response,StandardCharsets.UTF_8));call.resolve(result);
             }catch(Exception error){lastError="准备或推理失败/已停止："+error.getMessage();call.reject(lastError,error);}
-            finally{busy.set(false);if(!destroyed)handler.postDelayed(unload,30000);}
+            finally{busy.set(false);PetOverlayService.setAIActive(false);if(!destroyed)handler.postDelayed(unload,30000);}
         });
     }
     @PluginMethod public void cancel(PluginCall call){cancelRequest();call.resolve();}
