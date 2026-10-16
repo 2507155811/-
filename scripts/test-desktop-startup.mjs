@@ -13,9 +13,13 @@ try {
  await expect.poll(()=>app.windows().length).toBe(2);
  const dashboard=app.windows().find(w=>w!==pet);
  await expect(dashboard.locator('#models')).toBeVisible();
+ await dashboard.locator('[data-family="human"]').click();
+ await expect(pet.locator('.pet-label h2 span')).toHaveText('晴日 · 年轻成年');
+ await expect(pet.locator('#canvas')).toHaveAttribute('data-model-state','ready');
+ await dashboard.locator('[data-family="dragon"]').click();
  await pet.locator('#native-menu-toggle').click();await pet.locator('[data-pet-page="2"]').click();
  await expect(dashboard.locator('#chat')).toBeVisible();
- await dashboard.locator('[data-page="4"]').click();await dashboard.locator('#native-startup').uncheck();
+ await dashboard.locator('[data-page="4"]').click();await expect(dashboard.locator('#native-autolaunch')).toBeDisabled();await dashboard.locator('#native-startup').uncheck();
  await expect.poll(()=>dashboard.evaluate(async()=>(await window.momoDesktop.status()).startupPet)).toBe(false);
  await app.close();app=null;
  app=await _electron.launch(options);const first=await app.firstWindow();await first.waitForSelector('canvas');expect(first.url()).not.toContain('pet=1');

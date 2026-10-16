@@ -184,6 +184,12 @@ app
         case "alwaysOnTop":
           pet?.setAlwaysOnTop(!!value);
           return !!value;
+        case "autoLaunch": {
+          if (!app.isPackaged || !["win32", "darwin"].includes(process.platform))
+            throw Error("开机自启仅支持打包后的 Windows / macOS 电脑版");
+          app.setLoginItemSettings({openAtLogin:!!value,path:process.execPath,args:[]});
+          return app.getLoginItemSettings({path:process.execPath,args:[]}).openAtLogin;
+        }
         case "startupPet":
           desktopSettings.startupPet = !!value;
           saveDesktopSettings();
@@ -225,6 +231,9 @@ app
             platform: process.platform,
             petVisible: !!pet?.isVisible(),
             startupPet: desktopSettings.startupPet,
+            autoLaunchAvailable: app.isPackaged && ["win32", "darwin"].includes(process.platform),
+            autoLaunch: app.isPackaged && ["win32", "darwin"].includes(process.platform)
+              ? app.getLoginItemSettings({path:process.execPath,args:[]}).openAtLogin : false,
             clickThrough: passThrough,
           };
         default:

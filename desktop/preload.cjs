@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld("momoDesktop", {
   openPet: () => ipcRenderer.invoke("momo:native", "openPet"),
   hidePet: () => ipcRenderer.invoke("momo:native", "hidePet"),
   openDashboard: (page = 0) => ipcRenderer.invoke("momo:native", "dashboard", page),
+  setAutoLaunch: value => ipcRenderer.invoke("momo:native", "autoLaunch", !!value),
   setStartupPet: value => ipcRenderer.invoke("momo:native", "startupPet", !!value),
   setClickThrough: (value) =>
     ipcRenderer.invoke("momo:native", "clickThrough", !!value),

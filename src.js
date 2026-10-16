@@ -1,6 +1,7 @@
 import "./style.css";
 import { createDinosaur, EVOLUTION_STAGES } from "./dinosaur.js";
 import { initEvolution } from "./evolution.js";
+import { AVATAR_FAMILIES } from "./avatar-specs.js";
 import { askAI, cancelAI, prepareMessages, initAIPanel } from "./local-ai.js";
 import { downloadFile } from "./downloads.js";
 import { initNativeUI } from "./native-ui.js";
@@ -31,6 +32,8 @@ const appearance = readStore("momo-appearance", {
   accessory: !!saved.accessory,
 });
 activeAsset = appearance.activeAsset;
+let selectedFamily = appearance.family || "dragon";
+let wardrobe = readRecord("momo-wardrobe", {outfit:"stage",hair:"stage",outerwear:true});
 let renderPreferences = readRecord("momo-preferences", {
   fps: 15,
   motion: !matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -62,9 +65,9 @@ document.querySelector("#app").innerHTML = `
 <main><header><div><span class="eyebrow">YOUR LITTLE COMPANION</span><h1 id="heading">今天，也一起好好生活。</h1><p id="subtitle">和 MOMO 打个招呼，开启属于你们的一天。</p></div><div class="avatar">M</div></header>
 <section id="home" class="page"><div class="stage"><div class="stage-top"><span class="pill"><span class="dot"></span> MOMO 的小世界</span><span class="tag">实时 3D · 拖动旋转</span></div><div id="canvas"></div><div class="bubble" id="bubble">嘿，你来啦！今天想一起做些什么？</div><div class="pet-label"><h2>MOMO <span>绒角幼兽</span></h2><p>好奇心满满的，专属于你的小伙伴</p></div><div class="stage-tools"><button id="snapshot" aria-label="保存宠物照片">▣ 留个纪念</button><button id="focus-mode" aria-pressed="false">⛶ 陪伴模式</button></div><div class="stage-actions"><button id="wave">♡ 摸摸头</button><button id="feed">♧ 喂点心</button><button id="sleep">☾ 休息一下</button></div></div><div class="right-col"><article class="hello"><span class="eyebrow">A LITTLE ABOUT ME</span><h2>小小的我，<br>大大的陪伴。</h2><p>不赶时间，也不催促你。<br>我会在这里，陪你慢慢来。</p><div class="mood">✦ 心情 <b id="mood">开心冒泡</b></div></article><article><div class="card-title"><h3>我们的默契</h3><span>初次相遇</span></div><div class="progress"><i></i></div><p class="muted">从一句你好，开始熟悉彼此。</p><div class="stats"><div><b id="touches">0</b><span>今日互动</span></div><div><b id="days">01</b><span>陪伴天数</span></div></div></article><button class="model-link" data-open="1">◈ 换一个小伙伴 <span>↗</span></button></div></section><section class="world-panel" id="world-panel"><div><span class="eyebrow">MAKE YOURSELF AT HOME</span><h3>给陪伴换一种氛围</h3></div><div class="world-options"><button data-world="cloud" aria-pressed="true">☁ 云端小窝</button><button data-world="garden" aria-pressed="false">♧ 薄荷花园</button><button data-world="night" aria-pressed="false">☾ 星光晚安</button></div><label class="accessory-toggle"><input id="accessory" type="checkbox"> 戴上星星项链</label></section>
 <section id="models" class="page hidden"><div class="section-title"><h2>同一个伙伴，不断长大的勇气。</h2><p>更换外观，还是同一个伙伴。昵称、聊天与互动记忆始终保留。</p></div><div class="model-grid">${[
-  ["MOMO", "绒角幼兽", "#e6e7ff"],
-  ["桃桃", "赤陶配色", "#ffe2d7"],
-  ["薄荷", "苔绿配色", "#d9eee1"],
+  ["暖金", "经典配色", "#e6e7ff"],
+  ["赤陶", "暖色配色", "#ffe2d7"],
+  ["苔绿", "森林配色", "#d9eee1"],
 ]
   .map(
     ([n, d, c], i) =>
@@ -77,6 +80,7 @@ document.querySelector("#app").innerHTML = `
 <section id="tasks" class="page hidden"><article class="empty"><span>☷</span><h2>把琐事交给未来的我。</h2><p>任务功能稍后添加，先好好认识彼此。</p><p class="notice">淘宝 / 京东双 11 自动化尚未实现，当前不会读取或操控其他应用。</p></article></section>
 <section id="settings" class="page hidden"><article><h2>按你的节奏陪伴</h2><label class="setting">伙伴昵称<input id="pet-name" maxlength="20" value=""></label><label class="setting">安静模式<input type="checkbox" id="quiet"></label><label class="setting">角色显示大小<input id="size" type="range" min="70" max="130" value="100"></label><h3>属于我们的记忆</h3><p>记忆独立于角色外观保存。更换、导入或删除模型不会清除聊天记录、互动和偏好。</p><label for="memory-notes">希望伙伴记住的事情</label><textarea id="memory-notes" maxlength="10000" rows="4" placeholder="例如：我喜欢安静的陪伴，习惯晚上阅读。"></textarea><button class="secondary" id="save-memory">保存记忆</button><p class="muted">记忆保存在本机；原生版离线对话会参考这些内容。更换角色不会删除记忆，清除应用或浏览器数据前请先导出备份。</p><h3>本地 AI · 离线陪伴</h3><p>内置 AI 的电脑与安卓安装包包含已校验的 Qwen GGUF 权重和本地推理引擎。发送消息时按需加载，空闲 30 秒后卸载以减少资源占用；网页预览不提供原生推理。</p><p class="notice">可更换或导入 3D 模型，记忆始终独立保存。照片转 3D 暂缓实现，以控制安装体积和资源占用。原生版可在下方开启安卓悬浮宠物或电脑桌面宠物。</p><button class="secondary" id="reset">恢复默认设置</button></article></section>
 <footer><span>✧ 留一点空间，给可爱的事物。</span><span>离线陪伴 · Android / Windows</span></footer></main><div id="toast" role="status"></div>`;
+document.getElementById("accessory").checked=!!appearance.accessory;
 const pages = ["home", "models", "chat", "tasks", "settings"];
 function openPage(i) {
   pages.forEach((p, j) =>
@@ -156,7 +160,8 @@ let current = pet,
   jump = 0;
 let evolutionStage = readRecord("momo-evolution", {stage:0, highest:0}).stage;
 let creature = createDinosaur(evolutionStage, selectedModel);
-let creatureKey = `${evolutionStage}:${selectedModel}`;
+let creatureKey = `dragon:${evolutionStage}:${selectedModel}`;
+let creatureRevision=-1;
 pet.add(creature.root);
 const necklace = new T.Group();
 pet.add(necklace);
@@ -725,15 +730,31 @@ document.getElementById("save-memory").onclick = () => {
 function applyModel() {
   document.querySelector(".pet-label p").textContent =
     "好奇心满满的，专属于你的小伙伴";
-  const key = `${evolutionStage}:${selectedModel}`;
-  if (key !== creatureKey) {
-    pet.remove(creature.root);
-    dispose(creature.root);
-    creature = createDinosaur(evolutionStage, selectedModel);
-    pet.add(creature.root);
+  const key = `${selectedFamily}:${evolutionStage}:${selectedModel}${selectedFamily === "human" ? ":"+JSON.stringify(wardrobe) : ""}`;
+  const spec=AVATAR_FAMILIES[selectedFamily].stages[evolutionStage];
+  document.querySelector(".pet-label h2 span").textContent = spec.name;
+  document.querySelector(".pet-label p").textContent = selectedFamily === "human" ? "原创成年角色 · 记忆与外观独立保存" : spec.description;
+  necklace.visible=selectedFamily === "dragon" && document.getElementById("accessory").checked;
+  document.getElementById("accessory").disabled = selectedFamily !== "dragon";
+  if ((key !== creatureKey || (host.dataset.modelState === "loading" && creatureRevision !== modelRevision)) && activeAsset === "builtin") {
     creatureKey = key;
-  }
-  document.querySelector(".pet-label h2 span").textContent = EVOLUTION_STAGES[evolutionStage].name;
+    const family=selectedFamily, stage=evolutionStage, palette=selectedModel, outfit={...wardrobe};
+    const revision=modelRevision;creatureRevision=revision;
+    host.dataset.modelState="loading";
+    const prepare = family === "dragon" ? Promise.resolve(createDinosaur(stage,palette))
+      : import("./humanoid.js").then(module=>module.createHumanoid(family,stage,palette,outfit));
+    prepare.then(next=>{
+      if (creatureKey !== key || revision !== modelRevision || activeAsset !== "builtin") {dispose(next.root);return;}
+      pet.remove(creature.root);dispose(creature.root);creature=next;pet.add(next.root);pet.visible=true;
+      host.dataset.modelState="ready";
+      const box=new T.Box3().setFromObject(next.root),size=box.getSize(new T.Vector3()),center=box.getCenter(new T.Vector3());
+      const distance=Math.max(size.y, size.x/Math.max(.5,camera.aspect))*.5/Math.tan(T.MathUtils.degToRad(camera.fov/2))*1.22;
+      controls.target.set(0,center.y,0);camera.position.set(0,center.y+.75,Math.max(5,distance));controls.maxDistance=Math.max(11,distance*1.6);controls.update();
+      refreshRendering();
+    }).catch(error=>{
+      if(creatureKey === key){creatureKey=null;pet.visible=true;host.dataset.modelState="error";toast("形象加载失败，已保留原有形象："+error.message);}
+    });
+  } else if(key === creatureKey)host.dataset.modelState="ready";
   document.querySelectorAll("[data-model]").forEach((b) => {
     const selected = +b.dataset.model === selectedModel;
     b.setAttribute("aria-pressed", String(selected));
@@ -757,7 +778,8 @@ function save() {
     model: selectedModel,
     activeAsset,
     world,
-    accessory: necklace.visible,
+    accessory: document.getElementById("accessory").checked,
+    family: selectedFamily,
   });
   document.querySelector(".pet-label h2").firstChild.textContent =
     (nameInput.value || "MOMO") + " ";
@@ -787,7 +809,7 @@ document.querySelectorAll("[data-world]").forEach(
       save();
     }),
 );
-document.getElementById("accessory").checked = necklace.visible;
+document.getElementById("accessory").checked = !!appearance.accessory;
 document.getElementById("accessory").onchange = (e) => {
   necklace.visible = e.target.checked;
   if (current !== pet) toast("星星项链仅适用于内置伙伴");
@@ -814,6 +836,10 @@ readModel()
   });
 
 initEvolution({
+  getFamily: () => selectedFamily,
+  onFamilyChange: family => {selectedFamily=family;evolutionStage=readRecord("momo-evolution",{stage:0,highest:0}).stage;useBuiltin(selectedModel);refreshRendering();},
+  getWardrobe: () => wardrobe,
+  onWardrobeChange: next => {wardrobe=next;applyModel();refreshRendering();},
   toast,
   openHome: () => openPage(0),
   onChange: stage => {
@@ -869,8 +895,10 @@ window.addEventListener("storage", async (event) => {
   if (event.key === "momo-appearance") {
     const next = readRecord("momo-appearance", appearance);
     selectedModel = next.model;
+    selectedFamily = next.family || "dragon";
     setWorld(next.world);
     necklace.visible = next.accessory;
+    document.getElementById("accessory").checked=next.accessory;
     if (next.activeAsset === "builtin") {
       useBuiltin(next.model);
     } else {
@@ -878,6 +906,10 @@ window.addEventListener("storage", async (event) => {
       if (asset) await loadAsset(asset);
     }
   }
+  if (event.key === "momo-wardrobe") {
+    wardrobe=readRecord("momo-wardrobe",wardrobe);applyModel();
+  }
+  if (event.key === "momo-appearance")window.dispatchEvent(new Event("momo-family"));
   if (event.key === "momo-assets-updated" && activeAsset === "custom") {
     const asset = await readModel();
     if (asset) await loadAsset(asset);

@@ -72,6 +72,10 @@ export function createDinosaur(stage = 0, palette = 0) {
   function plate(parent,mat,p,scale,rot=[0,0,0]) {
     return mesh(parent,new T.BoxGeometry(1,1,1,1,1,1),mat,p,scale,rot);
   }
+  function armour(parent, points, mat, position, rotation=[0,0,0], depth=.06) {
+    const shape=new T.Shape();points.forEach(([x,y],i)=>i?shape.lineTo(x,y):shape.moveTo(x,y));shape.closePath();
+    return mesh(parent,new T.ExtrudeGeometry(shape,{depth,bevelEnabled:true,bevelSize:.025,bevelThickness:.018,bevelSegments:2,steps:1}),mat,position,[1,1,1],rotation);
+  }
   function bodyStripe(parent, side, y) {
     const positions=[], indices=[], steps=22;
     for(let i=0;i<=steps;i++) {
@@ -89,7 +93,7 @@ export function createDinosaur(stage = 0, palette = 0) {
   const head=new T.Group();torso.add(head);
   const tail=new T.Group();torso.add(tail);
   const limbs=[];
-  const eyeLids=[];
+  const eyeLids=[], jaws=[];
   if(stage===0) {
     ellipsoid(torso,skin,[0,.92,0],[.7,.77,.56]);
     ellipsoid(torso,belly,[0,.65,.44],[.44,.35,.14]);
@@ -110,9 +114,10 @@ export function createDinosaur(stage = 0, palette = 0) {
     head.position.set(0,mature?1.88:1.68,.09);
     ellipsoid(head,skin,[0,.05,0],mature?[.61,.53,.55]:[.52,.5,.49]);
     ellipsoid(head,skin,[0,-.10,.45],mature?[.57,.30,.53]:[.46,.27,.43]);
-    ellipsoid(head,dark,[0,-.25,.59],mature?[.49,.085,.4]:[.38,.052,.28]);
-    ellipsoid(head,skin,[0,-.32,.5],mature?[.49,.17,.40]:[.39,.13,.31]);
-    ellipsoid(head,belly,[0,-.36,.61],mature?[.39,.095,.29]:[.31,.07,.22]);
+    ellipsoid(head,dark,[0,-.25,.59],mature?[.46,.075,.36]:[.38,.052,.28]);
+    const jaw=new T.Group();head.add(jaw);jaws.push(jaw);
+    ellipsoid(jaw,skin,[0,-.32,.5],mature?[.49,.17,.40]:[.39,.13,.31]);
+    ellipsoid(jaw,belly,[0,-.36,.61],mature?[.39,.095,.29]:[.31,.07,.22]);
     for(const s of [-1,1]) {
       ellipsoid(head,dark,[s*.24,.015,mature?.895:.79],[.038,.025,.015],[0,0,s*.22]);
       // Individual rounded teeth, cheek creases and brow ridges.
@@ -129,10 +134,16 @@ export function createDinosaur(stage = 0, palette = 0) {
       for(let k=0;k<3;k++)tapered(arm,[[s*.13+(k-1)*.095,-.41,.28],[s*.13+(k-1)*.12,-.55,.39]],[.042,.001],white,8);
       if(mature) {
         // Sculpted skull helmet: forehead, cheek guards and a projecting nasal horn.
-        ellipsoid(head,bone,[0,.32,-.005],[.62,.35,.52]);
+        if(s===1){mesh(head,new T.SphereGeometry(1,28,18,0,Math.PI*2,0,1.48),bone,[0,.18,-.015],[.64,.55,.58]);
+        tapered(head,[[0,.70,.02],[0,.64,.27],[0,.51,.43]],[.009,.011,.001],horn,6);}
+        for(let k=0;k<3;k++)tapered(head,[[s*(.32+k*.06),.53-k*.04,.36],[s*(.40+k*.05),.42-k*.03,.42]],[.011,.001],horn,6);
         ellipsoid(head,bone,[s*.48,.04,.20],[.16,.32,.37],[0,0,s*.18]);
         tapered(head,[[s*.43,.48,-.16],[s*.65,.75,-.25],[s*.74,1.06,-.32]],[.17,.11,.001],horn);
         ellipsoid(head,horn,[s*.44,.50,-.14],[.19,.07,.18]);
+        for(let k=0;k<3;k++)ellipsoid(head,bone,[s*(.48+k*.048),.57+k*.10,-.18-k*.023],[.14-k*.022,.016,.12-k*.018],[0,0,-s*.30]);
+        // Recessed temple apertures and segmented jaw-edge plates.
+        ellipsoid(head,dark,[s*.58,.10,.22],[.019,.07,.10],[0,0,s*.15]);
+        for(let k=0;k<3;k++)ellipsoid(jaw,bone,[s*(.38+k*.036),-.25+k*.055,.37-k*.07],[.055,.058,.033],[0,s*.3,s*.14]);
         for(let i=0;i<3;i++)ellipsoid(head,horn,[s*(.13+i*.105),.55-i*.027,.30+i*.024],[.033,.014,.075],[0,0,-s*.25]);
         // Dark tiger marks are shaped meshes, not coplanar decals.
         for(let i=0;i<4;i++)bodyStripe(torso,s,.66+i*.22);
@@ -153,22 +164,48 @@ export function createDinosaur(stage = 0, palette = 0) {
         tapered(tail,ts.map(t=>curve.getPointAt(t).toArray()),ts.map(t=>{const q=t*4,a=Math.min(3,Math.floor(q));return T.MathUtils.lerp(radii[a],radii[a+1],q-a)+.004;}),stripe,16);
       }
     }
+    if(stage>=1) {
+      for(const s of [-1,1]) {
+        // Tiny lower teeth and sculpted nostril rims sharpen the muzzle profile.
+        for(let k=0;k<3;k++)tapered(jaw,[[s*(.13+k*.10),-.31,.85-k*.05],[s*(.13+k*.10),-.255,.85-k*.05]],[.023,.001],white,8);
+        tapered(head,[[s*.20,.035,.88],[s*.24,.05,.90],[s*.28,.025,.87]],[.013,.015,.001],orange,8);
+        for(let k=0;k<4;k++)ellipsoid(head,orange,[s*(.31+k*.035),-.08-k*.025,.71-k*.038],[.012,.018,.007]);
+      }
+    }
     if(stage===3) {
       // Layered shoulder and breast armour, rivets, a robotic forearm and dorsal fins.
-      ellipsoid(torso,metal,[0,1.25,.45],[.55,.35,.14]);
+      ellipsoid(torso,dark,[0,1.25,.45],[.53,.31,.12]);
+      for(const s of [-1,1]) {
+        armour(torso,[[s*.03,.24],[s*.43,.18],[s*.49,-.03],[s*.24,-.23],[s*.035,-.09]],metal,[0,1.24,.49]);
+        tapered(torso,[[s*.08,1.42,.58],[s*.35,1.39,.58],[s*.43,1.23,.57]],[.014,.014,.001],edge,6);
+        ellipsoid(torso,dark,[s*.50,.62,.12],[.17,.12,.20]);
+        armour(torso,[[-.14,.15],[.14,.15],[.16,-.08],[0,-.18],[-.16,-.08]],metal,[s*.50,.45,.35]);
+        for(let k=0;k<2;k++)ellipsoid(torso,edge,[s*.50+(k?1:-1)*.095,.53,.44],[.018,.018,.012]);
+      }
       ellipsoid(torso,edge,[0,1.45,.47],[.41,.08,.09]);
       mesh(torso,new T.OctahedronGeometry(.105),glow,[0,1.25,.60]);
       for(const s of [-1,1]) {
         ellipsoid(torso,metal,[s*.62,1.48,.06],[.34,.19,.35],[0,0,-s*.3]);
         for(let j=0;j<3;j++)ellipsoid(torso,edge,[s*(.58+j*.05),1.58-j*.065,.22],[.16,.035,.13],[0,0,-s*.3]);
         for(const y of [1.12,1.38])ellipsoid(torso,edge,[s*.36,y,.56],[.028,.028,.017]);
-        for(let j=0;j<3;j++)plate(torso,metal,[s*(.36+j*.21),1.58+j*.09,-.44-j*.16],[.15,.62-j*.10,.09],[.3,0,-s*(.3+j*.19)]);
+        for(let j=0;j<3;j++) {
+          armour(torso,[[-.075,0],[-.09,.48-j*.04],[.015,.63-j*.06],[.09,.43],[.075,0]],metal,[s*(.36+j*.21),1.26+j*.12,-.51-j*.15],[.3,0,-s*(.3+j*.19)]);
+          link(torso,[s*(.36+j*.21),1.27+j*.12,-.53-j*.15],[s*(.36+j*.21),1.66+j*.08,-.62-j*.15],.018,.012,edge);
+        }
       }
       const arm=limbs[3];
+      link(arm,[.12,-.02,.07],[.12,-.18,.13],.16,.16,dark);
+      mesh(arm,new T.TorusGeometry(.17,.022,8,20),edge,[.12,-.14,.13],[1,1,1],[Math.PI/2,0,0]);
       ellipsoid(arm,metal,[.12,-.24,.13],[.24,.30,.24]);
       for(let i=0;i<3;i++)plate(arm,edge,[.12,-.1-i*.11,.36],[.34,.047,.045],[0,0,.04]);
       ellipsoid(arm,glow,[.12,-.28,.38],[.065,.08,.018]);
-      for(let k=0;k<3;k++)tapered(arm,[[.12+(k-1)*.12,-.4,.25],[.12+(k-1)*.15,-.68,.48]],[.055,.001],edge);
+      for(let k=0;k<3;k++) {
+        const x=.12+(k-1)*.12;
+        link(arm,[x,-.39,.23],[x,-.52,.35],.044,.04,metal);
+        ellipsoid(arm,dark,[x,-.52,.35],[.052,.05,.05]);
+        tapered(arm,[[x,-.52,.35],[.12+(k-1)*.16,-.71,.50]],[.047,.001],edge);
+      }
+      for(const s of [-1,1])ellipsoid(arm,edge,[.12+s*.19,-.24,.19],[.025,.025,.025]);
     }
   }
   // Eye whites, elliptical pupils and separate catchlights maintain expression at desktop size.
@@ -212,6 +249,7 @@ export function createDinosaur(stage = 0, palette = 0) {
       head.rotation.y=asleep?-.13:Math.sin(t*.67)*.085;
       head.rotation.x=asleep?.17:Math.sin(t*.9)*.025;
       tail.rotation.y=Math.sin(t*1.4)*.16;
+      for(const jaw of jaws)jaw.rotation.x=asleep?0:(jump>0?Math.sin(jump)*.09:Math.sin(t*.65)*.007);
       torso.scale.y=1+Math.sin(t*1.7)*.008;
       const blink=asleep?.10:Math.sin(t*1.13)>.997?.13:1;
       for(const e of eyeLids)e.scale.y=blink;

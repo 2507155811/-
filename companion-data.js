@@ -7,6 +7,7 @@ export const BACKUP_KEYS = [
   "momo-planner",
   "momo-preferences",
   "momo-evolution",
+  "momo-wardrobe",
 ];
 const object = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 const text = (v, max) => typeof v === "string" && v.length <= max;
@@ -31,8 +32,11 @@ export function validateRecord(key, v) {
         num(v.model, 0, 2) &&
         ["builtin", "custom"].includes(v.activeAsset) &&
         ["cloud", "garden", "night"].includes(v.world) &&
-        typeof v.accessory === "boolean"
+        typeof v.accessory === "boolean" &&
+        (v.family === undefined || ["dragon", "angel", "human"].includes(v.family))
       );
+    case "momo-wardrobe":
+      return ["stage","daily","sport","formal","elegant"].includes(v.outfit) && ["stage","long","bob","ponytail"].includes(v.hair) && typeof v.outerwear === "boolean";
     case "momo-evolution":
       return Number.isInteger(v.stage) && num(v.stage, 0, 3) && Number.isInteger(v.highest) && num(v.highest, v.stage, 3);
     case "momo-memory":

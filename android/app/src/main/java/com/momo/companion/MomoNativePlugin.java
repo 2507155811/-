@@ -46,6 +46,10 @@ public class MomoNativePlugin extends Plugin {
     };
 
     @Override public void load(){
+        if(PetOverlayService.keepAliveEnabled(getContext())){
+            try{getContext().startForegroundService(new Intent(getContext(),PetOverlayService.class).setAction(PetOverlayService.ACTION_KEEP_ALIVE));}
+            catch(RuntimeException error){lastError="后台陪伴暂未启动，请在设置中重新开启。";}
+        }
         if(Build.VERSION.SDK_INT>=29){
             thermalListener=status->{if(status>=PowerManager.THERMAL_STATUS_MODERATE)cancelRequest();};
             getContext().getSystemService(PowerManager.class).addThermalStatusListener(thermalListener);
@@ -94,6 +98,9 @@ public class MomoNativePlugin extends Plugin {
         result.put("modelAvailable",installed());result.put("bundledModelAvailable",bundled());
         result.put("loaded",loaded);result.put("busy",busy.get());result.put("lastError",lastError);
         result.put("overlayAllowed",Settings.canDrawOverlays(getContext()));
+        result.put("keepAliveEnabled",PetOverlayService.keepAliveEnabled(getContext()));
+        result.put("backgroundServiceRunning",PetOverlayService.running);
+        result.put("notificationsAllowed",getContext().getSystemService(android.app.NotificationManager.class).areNotificationsEnabled());
         result.put("threads",2);result.put("context",2048);result.put("maxTokens",128);call.resolve(result);
     }
     @PluginMethod public void requestOverlayPermission(PluginCall call){
@@ -101,10 +108,33 @@ public class MomoNativePlugin extends Plugin {
     }
     @PluginMethod public void showOverlay(PluginCall call){
         if(!Settings.canDrawOverlays(getContext())){call.reject("请先允许显示在其他应用上层");return;}
-        getContext().startForegroundService(new Intent(getContext(),PetOverlayService.class));call.resolve();
+        getContext().startForegroundService(new Intent(getContext(),PetOverlayService.class).setAction(PetOverlayService.ACTION_SHOW));call.resolve();
     }
     @PluginMethod public void hideOverlay(PluginCall call){
-        getContext().stopService(new Intent(getContext(),PetOverlayService.class));call.resolve();
+        if(PetOverlayService.running)getContext().startService(new Intent(getContext(),PetOverlayService.class).setAction(PetOverlayService.ACTION_HIDE));call.resolve();
+    }
+    @PluginMethod public void setKeepAlive(PluginCall call){
+        boolean enabled=Boolean.TRUE.equals(call.getBoolean("enabled",false));
+        boolean previous=PetOverlayService.keepAliveEnabled(getContext());
+        getContext().getSharedPreferences("momo-native",android.content.Context.MODE_PRIVATE).edit().putBoolean("keepAlive",enabled).apply();
+        try{
+            if(enabled)getContext().startForegroundService(new Intent(getContext(),PetOverlayService.class).setAction(PetOverlayService.ACTION_KEEP_ALIVE));
+            else if(PetOverlayService.running)getContext().startService(new Intent(getContext(),PetOverlayService.class).setAction(PetOverlayService.ACTION_KEEP_ALIVE));
+            call.resolve();
+        }catch(RuntimeException error){
+            getContext().getSharedPreferences("momo-native",android.content.Context.MODE_PRIVATE).edit().putBoolean("keepAlive",previous).apply();
+            call.reject("后台陪伴启动失败，请保持应用在前台后重试。",error);
+        }
+    }
+    @PluginMethod public void openBatterySettings(PluginCall call){
+        getActivity().startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+getContext().getPackageName())));call.resolve();
+    }
+    @PluginMethod public void openAutostartSettings(PluginCall call){
+        try{
+            Intent intent=new Intent();intent.setComponent(new android.content.ComponentName("com.miui.securitycenter","com.miui.permcenter.autostart.AutoStartManagementActivity"));
+            getActivity().startActivity(intent);
+        }catch(RuntimeException error){getActivity().startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+getContext().getPackageName())));}
+        call.resolve();
     }
     @PluginMethod public void loadBundledModel(PluginCall call){
         if(!busy.compareAndSet(false,true)){call.reject("正在准备或推理，请先停止");return;}

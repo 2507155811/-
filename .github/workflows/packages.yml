@@ -24,8 +24,13 @@ on:
       - public/evolution/**
       - scripts/prepare-windows-engine.mjs
       - scripts/prepare-llama.mjs
+      - scripts/restore-windows-engine.py
+      - humanoid.js
+      - avatar-specs.js
+      - public/avatars/**
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: momo-packages
   cancel-in-progress: true
@@ -58,6 +63,11 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - uses: actions/cache@v4
+        if: matrix.target == 'android'
+        with:
+          path: ~/.android/debug.keystore
+          key: momo-android-debug-signing-v1
       - name: Install Android toolchain
         if: matrix.target == 'android'
         run: |
@@ -68,6 +78,25 @@ jobs:
       - run: npm ci
         env:
           ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      - uses: actions/cache@v4
+        if: matrix.target == 'windows'
+        id: engine-cache
+        with:
+          path: ai-runtime/win32-x64
+          key: momo-win-static-${{ hashFiles('ai/runtime-lock.json', 'scripts/prepare-llama.mjs', 'scripts/prepare-windows-engine.mjs') }}
+      - name: Download previously verified native engine package
+        if: matrix.target == 'windows' && steps.engine-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: '38844003853'
+          name: momo-windows
+          path: .cache/runtime-bootstrap
+      - name: Verify and restore compatible static engine
+        if: matrix.target == 'windows' && steps.engine-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        run: python scripts/restore-windows-engine.py
       - name: Download and verify bundled AI model
         run: npm run ai:model
       - name: Package Windows x64

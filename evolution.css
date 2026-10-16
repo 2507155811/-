@@ -51,3 +51,11 @@ nav button.active { background: #e7eee3; color: #355b49; }
 .model-card:nth-child(2) .dino-swatch img {filter:hue-rotate(-24deg) saturate(.7);}
 .model-card:nth-child(3) .dino-swatch img {filter:hue-rotate(55deg) saturate(.45);}
 @media(max-width:700px){.evolution-portrait{height:120px;}}
+.family-selector {display:flex;gap:8px;flex-wrap:wrap;margin:22px 0 12px;}
+.family-selector button {border:1px solid #dbe3d1;background:#f3f5ec;border-radius:24px;padding:10px 18px;font-size:12px;color:#738065;}
+.family-selector button[aria-pressed=true] {background:#365741;color:#fff;border-color:#365741;}
+#wardrobe-panel {border-top:1px solid #e1e6d8;margin-top:20px;padding-top:8px;}
+.wardrobe-controls {display:flex;gap:18px;align-items:center;flex-wrap:wrap;}
+.wardrobe-controls label {font-size:12px;color:#65765c;display:flex;gap:10px;align-items:center;}
+.wardrobe-controls select {padding:9px 12px;border-radius:9px;border:1px solid #d9e1cd;background:#fffef8;color:#465c40;font-size:12px;}
+#canvas[data-model-state=loading]::after {content:'正在准备 3D 形象…';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#ffffffe6;padding:12px 18px;border-radius:12px;font-size:12px;color:#6d805e;}
