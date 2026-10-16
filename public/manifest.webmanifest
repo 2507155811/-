@@ -1,0 +1,26 @@
+{
+  "id": "/",
+  "name": "MOMO · 你的数字小伙伴",
+  "short_name": "MOMO",
+  "description": "可换外观、保留记忆的 3D 陪伴伙伴",
+  "lang": "zh-CN",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f7fa",
+  "theme_color": "#9580b3",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
