@@ -33,6 +33,11 @@ try {
   await page.locator('[data-page="4"]').click();
   await page.locator("#memory-notes").fill("用户喜欢喝红茶。");
   await page.locator("#save-memory").click();
+  await page.evaluate(() => window.momoDesktop.openPet());
+  await expect.poll(() => app.windows().length).toBe(2);
+  const pet = app.windows().find(w => w !== page);
+  await pet.waitForSelector(".native-pet");
+  await pet.evaluate(() => {window.aiSignals=[];window.addEventListener("momo-ai-busy",e=>window.aiSignals.push(e.detail));});
   await page.locator('[data-page="2"]').click();
   await page.locator("#chat-input").fill("我喜欢喝什么？请只回答饮品名。");
   await page.locator("#chat-send").click();
@@ -42,6 +47,7 @@ try {
   await expect(
     page.locator("#messages .message:not(.user)").last(),
   ).toContainText("红茶");
+  expect(await pet.evaluate(() => window.aiSignals)).toEqual([true,false]);
   const before = await page.evaluate(() => localStorage.getItem("momo-memory"));
   await page.locator('[data-page="1"]').click();
   await page.locator('[data-model="2"]').click();
@@ -53,7 +59,7 @@ try {
   await page.locator("#ai-unload").click();
   await expect(page.locator("#ai-status")).toContainText("待命");
   console.log(
-    "PASS: real Electron IPC conversation, persistent memory, appearance switching, unload control.",
+    "PASS: real Electron IPC conversation, persistent memory, appearance switching, cross-window AI pause signals, unload control.",
   );
 } finally {
   await app?.close();

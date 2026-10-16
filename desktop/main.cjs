@@ -122,6 +122,15 @@ function openPet() {
     passThrough = false;
   });
 }
+async function runAI(action) {
+  const broadcast = busy => {
+    for (const win of [dashboard, pet])
+      if (win && !win.isDestroyed()) win.webContents.send("momo:ai-busy", busy);
+  };
+  broadcast(true);
+  try { return await action(); }
+  finally { broadcast(ai.busy); }
+}
 function setPassThrough(value) {
   passThrough = !!value;
   if (pet && !pet.isDestroyed())
@@ -182,7 +191,7 @@ app
         case "aiStatus":
           return ai.status();
         case "aiLoad":
-          return ai.load();
+          return runAI(() => ai.load());
         case "aiSelect": {
           const result = await dialog.showOpenDialog({
             properties: ["openFile"],
@@ -203,7 +212,7 @@ app
             )
           )
             throw Error("Invalid messages");
-          return ai.chat(value);
+          return runAI(() => ai.chat(value));
         }
         case "aiCancel":
           ai.cancel();

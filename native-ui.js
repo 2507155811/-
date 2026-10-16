@@ -29,6 +29,9 @@ export function initNativeUI() {
       };
   }
   if (!window.momoDesktop) return;
+  window.momoDesktop.onAIBusy?.(busy =>
+    window.dispatchEvent(new CustomEvent("momo-ai-busy", {detail:busy})),
+  );
   window.momoDesktop.onPower?.((paused) =>
     window.dispatchEvent(new CustomEvent("momo-power", { detail: { paused } })),
   );

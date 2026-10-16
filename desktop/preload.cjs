@@ -1,5 +1,10 @@
 const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("momoDesktop", {
+  onAIBusy: (callback) => {
+    const listener = (_event, busy) => callback(!!busy);
+    ipcRenderer.on("momo:ai-busy", listener);
+    return () => ipcRenderer.removeListener("momo:ai-busy", listener);
+  },
   onNavigate: (callback) => {
     const listener = (_event, page) => callback(page);
     ipcRenderer.on("momo:navigate", listener);
