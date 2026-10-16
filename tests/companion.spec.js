@@ -33,3 +33,18 @@ test('mobile preferences and interaction survive reload',async({page})=>{
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.locator('#focus-mode').click();await page.keyboard.press('Escape');await expect(page.locator('body')).not.toHaveClass('companion-mode');
 });
+test('changing and deleting appearance preserves companion memory',async({page})=>{
+  await page.goto('/');await page.locator('#wave').click();
+  await page.locator('[data-page="4"]').click();await page.locator('#pet-name').fill('团团');await page.locator('#quiet').check();
+  await page.locator('#memory-notes').fill('我喜欢晚上阅读');await page.locator('#save-memory').click();
+  await page.locator('[data-page="2"]').click();await page.locator('#chat-input').fill('记住我们今天的见面');await page.locator('#chat-form button').click();
+  const original=await page.evaluate(()=>Object.fromEntries(['momo-memory','momo-journal','momo-settings'].map(k=>[k,localStorage.getItem(k)])));
+  await page.locator('[data-page="1"]').click();await page.locator('[data-model="2"]').click();
+  await page.locator('[data-page="1"]').click();await page.locator('#model-file').setInputFiles(modelFile());await expect(page.locator('#import-status')).toContainText('已保存到本机');
+  await page.reload();await expect(page.locator('.pet-label h2 span')).toHaveText('自定义模型');
+  await page.locator('[data-page="1"]').click();await page.locator('#delete-model').click();await expect(page.locator('#import-status')).toContainText('已删除');
+  expect(await page.evaluate(()=>Object.fromEntries(['momo-memory','momo-journal','momo-settings'].map(k=>[k,localStorage.getItem(k)])))).toEqual(original);
+  await page.reload();await expect(page.locator('#touches')).toHaveText('1');
+  await page.locator('[data-page="2"]').click();await expect(page.locator('.message.user')).toHaveText('记住我们今天的见面');
+  await page.locator('[data-page="4"]').click();await expect(page.locator('#memory-notes')).toHaveValue('我喜欢晚上阅读');await expect(page.locator('#pet-name')).toHaveValue('团团');await expect(page.locator('#quiet')).toBeChecked();
+});

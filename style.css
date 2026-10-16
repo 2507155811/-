@@ -3,3 +3,4 @@
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 .stage[data-world=night] .stage-tools button,.stage[data-world=night] .stage-actions button{background:#ffffffdf;color:#695477}.stage[data-world=night] .stage-tools button:hover,.stage[data-world=night] .stage-actions button:hover{background:#fff}
 .asset-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.asset-actions button{padding:10px 12px;font-size:11px}button:disabled{opacity:.45;cursor:not-allowed}
+#memory-notes{display:block;width:100%;resize:vertical;min-height:110px;margin:12px 0;border:1px solid #e5dfed;background:#fcfbfe;border-radius:10px;padding:14px;font:inherit;font-size:13px;line-height:1.8;color:#786789}#settings label[for=memory-notes]{font-size:13px;color:#8f809c}
