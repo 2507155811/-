@@ -34,7 +34,12 @@ export function createDinosaur(stage = 0, palette = 0) {
     const value=Math.round(220-rim*45+Math.sin(x*13+y*7)*3), k=(y*128+x)*4;
     pixels.set([value,value,value,255],k);
   }
-  const scales=new T.DataTexture(pixels,128,128,T.RGBAFormat);
+  let scales;
+  if (typeof document !== 'undefined') {
+    const canvas=document.createElement('canvas');canvas.width=canvas.height=128;
+    canvas.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(pixels.buffer),128,128),0,0);
+    scales=new T.CanvasTexture(canvas);
+  } else scales=new T.DataTexture(pixels,128,128,T.RGBAFormat);
   scales.wrapS=scales.wrapT=T.RepeatWrapping;scales.magFilter=T.LinearFilter;scales.needsUpdate=true;
   skin.bumpMap=scales;skin.bumpScale=.013;skin.roughnessMap=scales;
   const sphere = new T.SphereGeometry(1, 20, 14);

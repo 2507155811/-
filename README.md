@@ -1,7 +1,13 @@
 # MOMO · 3D 陪伴伙伴
 
-面向安卓和电脑的响应式 Web 应用，使用 Three.js + Vite。版本 0.5。
+面向安卓和电脑的响应式 Web 应用，使用 Three.js + Vite。版本 0.6。
 角色外观与伙伴身份独立：更换、导入或删除模型不会清除昵称、偏好、聊天、记事、互动和成长记录。
+
+## 安装包下载
+
+打开 [GitHub Actions 打包列表](https://github.com/2507155811/-/actions/workflows/packages.yml)，选择最新成功构建，滚动到 **Artifacts**，登录 GitHub 后下载 `momo-windows` 与 `momo-android`。构件保留 14 天。Windows 下载后先解压构件，再解压其中的应用 ZIP，运行 `MOMO.exe`。安卓解压构件后安装 APK。
+
+电脑版默认先显示桌面宠物。双击宠物进入聊天，悬浮菜单进入进化、任务和设置；可在偏好设置改为启动主界面。进化方案与验证说明见 [0.6 更新](docs/EVOLUTION-0.6.md)。
 
 ## 运行与构建
 
@@ -23,9 +29,10 @@ npm run preview
 
 | 类别 | 功能 |
 | --- | --- |
-| 3D 伙伴 | 程序化云朵精灵、三种配色、眨眼、摸头、点心、睡觉、直接点击互动 |
+| 3D 伙伴 | 四阶段原创龙系伙伴、三种配色、眨眼、摸头、点心、睡觉、直接点击互动 |
 | 外观与场景 | 内置星星项链，云端/花园/星光主题，旋转与缩放，陪伴模式，透明 PNG 截图 |
 | 自定义模型 | 自包含 GLB/GLTF 导入，100 MB 上限，自动归一化；IndexedDB 保存与恢复，删除，GLB 导出再导入 |
+| 进化 | 幼兽 → 赤焰龙仔 → 角冠暴龙 → 合金龙卫，解锁、预览与形态切换，记忆独立保存 |
 | 成长 | 每日签到、互动经验、等级、成就；没有离线掉血或惩罚 |
 | 专注 | 1/15/25/45/60 分钟计时，暂停、继续、重置，刷新续计，完成记录 |
 | 待办 | 添加、完成、删除、清理；可选一次性提醒；页面内提示与经授权的浏览器通知 |
@@ -42,14 +49,14 @@ npm run preview
 - `momo-memory`：聊天与手动记忆；`momo-journal`：互动与首次陪伴日期。
 - `momo-settings`：昵称与偏好；`momo-appearance`：模型选择与场景。
 - `momo-care`：签到、点心、抚摸与专注成长；`momo-planner`：待办和计时。
-- `momo-preferences`：渲染与语音；IndexedDB：一份自定义模型。
+- `momo-preferences`：渲染与语音；`momo-evolution`：当前形态与已解锁阶段；IndexedDB：一份自定义模型。
 - 旧版模型选择会从设置迁移到独立外观记录。
 
 JSON 备份包含上述 localStorage 记录，不包含 3D 文件、AI 权重或图片。3D 模型在伙伴图鉴单独导出。导入前校验结构，展示摘要并确认；仅替换备份包含的类别，保存恢复前快照供撤销。备份含私人聊天，请自行妥善保存。
 
 当前没有云端同步；更换浏览器/设备或清除站点数据不会保留本机记录。导出备份可用于迁移。导入、照片与记事不会上传到服务器。
 
-## 原生与 AI（0.5）
+## 原生与 AI（0.6）
 
 已加入 Electron 原生控制面板、透明宠物窗口、托盘、置顶与穿透控制，安卓悬浮服务与本地 JNI 推理引擎。选用 Apache-2.0 的 Qwen2.5-0.5B-Instruct Q4_K_M，电脑/手机共用 GGUF；模型权重约 491 MB。
 
@@ -58,7 +65,7 @@ JSON 备份包含上述 localStorage 记录，不包含 3D 文件、AI 权重或
 完整构建步骤、网络前置条件、平台验证范围和耗电验收见 [原生与 AI 指南](docs/native-and-ai.md)。
 
 - `npm run desktop`：启动电脑原生应用。
-- `npm run desktop:package:windows`：使用已校验的官方 CPU 引擎跨平台生成 Windows x64 便携目录；需要准备模型。
+- `npm run desktop:package:windows`：在 Windows 上从固定源码编译静态兼容 CPU 引擎，生成 Windows x64 便携目录；需要模型与 CMake / MSVC。
 - `npm run android:build`：构建含模型的安卓包，缺少校验权重会失败。
 - `npm run android:build:ui`：构建不含权重的 UI 调试包。
 - `npm run test:desktop`：电脑原生冒烟检查。
@@ -79,4 +86,4 @@ npm test
 CHROMIUM_PATH=/usr/bin/chromium npm test
 ```
 
-测试会启动开发服务和生产预览，覆盖模型往返导入、记忆与外观分离、成长、专注、待办、备份恢复撤销、手机布局和生产环境离线重载。构建体积主要来自 Three.js；尚未做安卓或原生桌面安装包验证。
+测试会启动开发服务和生产预览，覆盖模型往返导入、记忆与外观分离、成长、专注、待办、备份恢复撤销、手机布局和生产环境离线重载。构建体积主要来自 Three.js；已验证安卓打包、本地 JNI、Linux Electron 与真实模型推理；Windows 构建机验证实际包内引擎，尚未完成用户设备上的实机与功耗验证。

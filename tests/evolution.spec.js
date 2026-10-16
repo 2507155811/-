@@ -24,3 +24,10 @@ test('evolution screen fits a phone and preview remains cancelable',async({page}
  await page.locator('[data-evolution="2"]').click();await page.locator('.preview-exit').click();
  await expect(page.locator('.pet-label h2 span')).toHaveText('绒角幼兽');
 });
+test('fully evolved pet exports and reimports within the energy budget',async({page})=>{
+ await page.goto('/');await page.locator('[data-page="1"]').click();await page.locator('[data-evolution="3"]').click();
+ await page.locator('[data-page="1"]').click();
+ const downloadEvent=page.waitForEvent('download');await page.locator('#export-model').click();const download=await downloadEvent;
+ const file=await download.path();await page.locator('#model-file').setInputFiles(file);
+ await expect(page.locator('#import-status')).toContainText('已加载');await expect(page.locator('.pet-label h2 span')).toHaveText('自定义模型');
+});

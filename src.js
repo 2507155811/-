@@ -398,7 +398,7 @@ document.getElementById("focus-mode").onclick = () => {
   resize();
 };
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && document.body.classList.contains("companion-mode"))
+  if (e.key === "Escape" && document.body.classList.contains("companion-mode") && !document.body.classList.contains("native-pet"))
     document.getElementById("focus-mode").click();
 });
 document.getElementById("snapshot").onclick = async () => {

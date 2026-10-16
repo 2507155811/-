@@ -22,7 +22,9 @@
     "test:ai": "node scripts/test-ai.mjs",
     "test:desktop:ai": "npm run build && node scripts/test-desktop-ai.mjs",
     "ai:windows:runtime": "python scripts/prepare-windows-runtime.py",
-    "desktop:package:windows": "node scripts/prepare-windows-engine.mjs && npm run build && node scripts/package-desktop.mjs --platform=win32 --arch=x64"
+    "desktop:package:windows": "node scripts/prepare-windows-engine.mjs && npm run build && node scripts/package-desktop.mjs --platform=win32 --arch=x64",
+    "test:desktop:startup": "npm run build && node scripts/test-desktop-startup.mjs",
+    "test:ai:errors": "node scripts/test-ai-errors.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^7.6.9",

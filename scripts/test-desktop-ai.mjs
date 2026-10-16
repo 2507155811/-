@@ -51,7 +51,7 @@ try {
   );
   await page.locator('[data-page="4"]').click();
   await page.locator("#ai-unload").click();
-  await expect(page.locator("#ai-status")).toContainText("未加载");
+  await expect(page.locator("#ai-status")).toContainText("待命");
   console.log(
     "PASS: real Electron IPC conversation, persistent memory, appearance switching, unload control.",
   );

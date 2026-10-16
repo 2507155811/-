@@ -222,7 +222,7 @@ app
           throw Error("Unsupported action");
       }
     });
-    if (!process.argv.includes("--momo-smoke")) {
+    if (!process.argv.includes("--momo-smoke") && !process.argv.includes("--momo-no-tray")) {
       tray = new Tray(
         nativeImage
           .createFromPath(path.join(root, "icon-192.png"))
