@@ -1,0 +1,57 @@
+.native-pet,
+.native-pet main,
+.native-pet .stage {
+  background: transparent !important;
+  border: 0 !important;
+  overflow: hidden;
+}
+.native-pet main {
+  padding: 0 !important;
+}
+.native-pet .stage {
+  height: 100dvh !important;
+  border-radius: 0;
+}
+.native-pet #canvas {
+  inset: 30px 0 45px !important;
+}
+.native-pet .stage-top,
+.native-pet .stage-tools,
+.native-pet .pet-label,
+.native-pet .bubble {
+  display: none;
+}
+.native-pet .stage-actions {
+  bottom: 8px;
+  gap: 5px;
+}
+.native-pet .stage-actions button {
+  font-size: 10px;
+  padding: 8px;
+  background: #ffffffd9;
+}
+.native-pet-toolbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 12px;
+  background: #ffffffbd;
+  -webkit-app-region: drag;
+  color: #8e76a8;
+  font-size: 11px;
+}
+.native-pet-toolbar span {
+  flex: 1;
+}
+.native-pet-toolbar button {
+  -webkit-app-region: no-drag;
+  border: 0;
+  background: none;
+  color: #8e76a8;
+  font-size: 16px;
+}

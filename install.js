@@ -1,3 +1,4 @@
+import {Capacitor} from "@capacitor/core";
 let installPrompt = null;
 window.addEventListener("beforeinstallprompt", (event) => {
   event.preventDefault();
@@ -16,6 +17,7 @@ export async function installApp() {
   return "请使用浏览器菜单中的“安装应用”或“添加到主屏幕”。浏览器需支持安装，并通过 HTTPS 或本机地址访问。";
 }
 export async function enableOffline() {
+  if(Capacitor.isNativePlatform()||location.protocol==="momo:")return "应用资源已内置，无需浏览器离线缓存。";
   if (!import.meta.env.PROD) return "开发模式不启用离线缓存，请使用生产构建。";
   if (!("serviceWorker" in navigator))
     return "当前浏览器或访问地址不支持离线缓存。";

@@ -1,4 +1,5 @@
 import "./features.css";
+import { downloadFile } from "./downloads.js";
 import { installApp, enableOffline } from "./install.js";
 import {
   readRecord,
@@ -23,7 +24,7 @@ export function initCompanion({ toast, save, say, isQuiet, interactionTotal }) {
     focus: { duration: 1500000, remaining: 1500000, endsAt: null },
   });
   const preferences = readRecord("momo-preferences", {
-    fps: 30,
+    fps: 15,
     motion: !matchMedia("(prefers-reduced-motion: reduce)").matches,
     speech: false,
   });
@@ -47,7 +48,11 @@ export function initCompanion({ toast, save, say, isQuiet, interactionTotal }) {
   };
   enableOffline().then((status) => ($("offline-status").textContent = status));
   const persistCare = () => save("momo-care", care),
-    persistPlanner = () => save("momo-planner", planner);
+    persistPlanner = () => {
+      const result = save("momo-planner", planner);
+      scheduleTick();
+      return result;
+    };
   function speak(text) {
     if (!preferences.speech || isQuiet() || !("speechSynthesis" in window))
       return;
@@ -238,6 +243,23 @@ export function initCompanion({ toast, save, say, isQuiet, interactionTotal }) {
     persistPlanner();
     renderTimer();
   };
+  let tickTimer = null;
+  function scheduleTick() {
+    clearTimeout(tickTimer);
+    const now = Date.now(),
+      deadlines = planner.tasks
+        .filter((t) => !t.done && !t.notified && t.due !== null)
+        .map((t) => t.due);
+    if (planner.focus.endsAt !== null) deadlines.push(planner.focus.endsAt);
+    if (!deadlines.length) return;
+    const delay =
+      planner.focus.endsAt !== null &&
+      !document.hidden &&
+      !$("tasks").classList.contains("hidden")
+        ? 1000
+        : Math.max(1000, Math.min(2147483647, Math.min(...deadlines) - now));
+    tickTimer = setTimeout(tick, delay);
+  }
   function tick() {
     const f = planner.focus;
     if (f.endsAt !== null && remainingFocus(f) === 0) {
@@ -268,6 +290,7 @@ export function initCompanion({ toast, save, say, isQuiet, interactionTotal }) {
       renderTasks();
     }
     renderTimer();
+    scheduleTick();
   }
   function notificationStatus() {
     return !("Notification" in window)
@@ -317,19 +340,15 @@ export function initCompanion({ toast, save, say, isQuiet, interactionTotal }) {
     }
     speak("你好，我会一直在这里陪着你。");
   };
-  $("export-backup").onclick = () => {
+  $("export-backup").onclick = async () => {
     try {
       const backup = createBackup();
-      const url = URL.createObjectURL(
-          new Blob([JSON.stringify(backup, null, 2)], {
-            type: "application/json",
-          }),
-        ),
-        a = document.createElement("a");
-      a.href = url;
-      a.download = `MOMO-memory-${day()}.json`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      await downloadFile(
+        new Blob([JSON.stringify(backup, null, 2)], {
+          type: "application/json",
+        }),
+        `MOMO-memory-${day()}.json`,
+      );
       $("backup-status").textContent = "记忆备份已导出；模型请单独导出。";
     } catch (error) {
       $("backup-status").textContent = error.message;
@@ -379,15 +398,30 @@ export function initCompanion({ toast, save, say, isQuiet, interactionTotal }) {
       $("backup-status").textContent = error.message;
     }
   };
+  window.addEventListener("storage", (event) => {
+    if (event.key === "momo-care") {
+      Object.assign(care, readRecord("momo-care", care));
+      renderCare();
+    }
+    if (event.key === "momo-planner") {
+      Object.assign(planner, readRecord("momo-planner", planner));
+      renderTasks();
+      tick();
+    }
+  });
   renderCare();
   renderTasks();
   tick();
-  setInterval(tick, 1000);
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) {
       tick();
       renderCare();
+    } else {
+      scheduleTick();
     }
+  });
+  window.addEventListener("momo-page", () => {
+    tick();
   });
   return preferences;
 }

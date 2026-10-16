@@ -103,7 +103,7 @@ test("changing and deleting appearance preserves companion memory", async ({
   await page.locator("#save-memory").click();
   await page.locator('[data-page="2"]').click();
   await page.locator("#chat-input").fill("记住我们今天的见面");
-  await page.locator("#chat-form button").click();
+  await page.locator("#chat-send").click();
   const original = await page.evaluate(() =>
     Object.fromEntries(
       ["momo-memory", "momo-journal", "momo-settings"].map((k) => [

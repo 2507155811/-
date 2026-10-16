@@ -2,3 +2,12 @@ node_modules/
 dist/
 test-results/
 playwright-report/
+vendor/
+ai-assets/
+ai-runtime/
+artifacts/
+*.jks
+*.keystore
+.cache/
+
+__pycache__/

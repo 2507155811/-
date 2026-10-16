@@ -1,4 +1,7 @@
 import "./style.css";
+import { askAI, cancelAI, prepareMessages, initAIPanel } from "./local-ai.js";
+import { downloadFile } from "./downloads.js";
+import { initNativeUI } from "./native-ui.js";
 import { initCompanion } from "./companion-features.js";
 import { readRecord } from "./companion-data.js";
 import * as T from "three";
@@ -27,14 +30,14 @@ const appearance = readStore("momo-appearance", {
 });
 activeAsset = appearance.activeAsset;
 let renderPreferences = readRecord("momo-preferences", {
-  fps: 30,
+  fps: 15,
   motion: !matchMedia("(prefers-reduced-motion: reduce)").matches,
   speech: false,
 });
-window.addEventListener(
-  "momo-preferences",
-  (e) => (renderPreferences = e.detail),
-);
+window.addEventListener("momo-preferences", (e) => {
+  renderPreferences = e.detail;
+  refreshRendering();
+});
 const memory = readStore("momo-memory", { messages: [], notes: "" });
 if (!Array.isArray(memory.messages)) memory.messages = [];
 let today = new Date().toLocaleDateString("sv-SE");
@@ -53,7 +56,7 @@ let selectedModel = Number.isInteger(appearance.model)
   : 0;
 
 document.querySelector("#app").innerHTML = `
-<aside><a class="brand">✳ <b>MOMO<span>桌面上的小小陪伴</span></b></a><nav>${["我的宠物", "伙伴图鉴", "AI 聊天", "任务中心", "偏好设置"].map((x, i) => `<button data-page="${i}" class="${i === 0 ? "active" : ""}"><i>${["⌂", "◈", "✧", "☷", "⚙"][i]}</i>${x}</button>`).join("")}</nav><div class="side-note"><span class="dot"></span> 你的陪伴，正在发生<p>一点好奇，一点温柔。<br>让每一天都多一点期待。</p></div><small> M O M O / PREVIEW 0.4</small></aside>
+<aside><a class="brand">✳ <b>MOMO<span>桌面上的小小陪伴</span></b></a><nav>${["我的宠物", "伙伴图鉴", "AI 聊天", "任务中心", "偏好设置"].map((x, i) => `<button data-page="${i}" class="${i === 0 ? "active" : ""}"><i>${["⌂", "◈", "✧", "☷", "⚙"][i]}</i>${x}</button>`).join("")}</nav><div class="side-note"><span class="dot"></span> 你的陪伴，正在发生<p>一点好奇，一点温柔。<br>让每一天都多一点期待。</p></div><small> M O M O / PREVIEW 0.5</small></aside>
 <main><header><div><span class="eyebrow">YOUR LITTLE COMPANION</span><h1 id="heading">今天，也一起好好生活。</h1><p id="subtitle">和 MOMO 打个招呼，开启属于你们的一天。</p></div><div class="avatar">M</div></header>
 <section id="home" class="page"><div class="stage"><div class="stage-top"><span class="pill"><span class="dot"></span> MOMO 的小世界</span><span class="tag">实时 3D · 拖动旋转</span></div><div id="canvas"></div><div class="bubble" id="bubble">嘿，你来啦！今天想一起做些什么？</div><div class="pet-label"><h2>MOMO <span>云朵精灵</span></h2><p>好奇心满满的，专属于你的小伙伴</p></div><div class="stage-tools"><button id="snapshot" aria-label="保存宠物照片">▣ 留个纪念</button><button id="focus-mode" aria-pressed="false">⛶ 陪伴模式</button></div><div class="stage-actions"><button id="wave">♡ 摸摸头</button><button id="feed">♧ 喂点心</button><button id="sleep">☾ 休息一下</button></div></div><div class="right-col"><article class="hello"><span class="eyebrow">A LITTLE ABOUT ME</span><h2>小小的我，<br>大大的陪伴。</h2><p>不赶时间，也不催促你。<br>我会在这里，陪你慢慢来。</p><div class="mood">✦ 心情 <b id="mood">开心冒泡</b></div></article><article><div class="card-title"><h3>我们的默契</h3><span>初次相遇</span></div><div class="progress"><i></i></div><p class="muted">从一句你好，开始熟悉彼此。</p><div class="stats"><div><b id="touches">0</b><span>今日互动</span></div><div><b id="days">01</b><span>陪伴天数</span></div></div></article><button class="model-link" data-open="1">◈ 换一个小伙伴 <span>↗</span></button></div></section><section class="world-panel" id="world-panel"><div><span class="eyebrow">MAKE YOURSELF AT HOME</span><h3>给陪伴换一种氛围</h3></div><div class="world-options"><button data-world="cloud" aria-pressed="true">☁ 云端小窝</button><button data-world="garden" aria-pressed="false">♧ 薄荷花园</button><button data-world="night" aria-pressed="false">☾ 星光晚安</button></div><label class="accessory-toggle"><input id="accessory" type="checkbox"> 戴上星星项链</label></section>
 <section id="models" class="page hidden"><div class="section-title"><h2>每一种模样，都值得被喜欢。</h2><p>更换外观，还是同一个伙伴。昵称、聊天与互动记忆始终保留。</p></div><div class="model-grid">${[
@@ -67,10 +70,10 @@ document.querySelector("#app").innerHTML = `
   )
   .join(
     "",
-  )}</div><div class="import-grid"><article><h3>↥ 导入 3D 模型</h3><p>支持 GLB / GLTF。建议使用自包含 GLB；模型保存在当前浏览器，刷新后可自动恢复。清除浏览器数据会删除模型。</p><label class="primary">选择模型文件<input id="model-file" type="file" accept=".glb,.gltf" hidden></label><div class="asset-actions"><button class="secondary" id="restore-model" disabled>恢复已保存模型</button><button class="secondary" id="export-model">导出当前模型</button><button class="secondary" id="delete-model" disabled>删除已保存模型</button></div><p class="muted" id="import-status" role="status" aria-live="polite">自带动画会自动播放；未绑定骨骼的模型不支持通用宠物动作。</p></article><article><h3>✧ 从照片创造伙伴</h3><p>上传照片，预览未来伙伴的灵感来源。照片生成 3D 服务尚未接入。</p><label class="secondary">选择参考照片<input id="photo-file" type="file" accept="image/*" hidden></label><img id="photo" hidden alt="本地参考照片"><p class="muted">当前只提供本地照片预览，不会生成模型或上传照片。</p></article></div></section>
-<section id="chat" class="page hidden"><article class="chat-card"><h2>和 MOMO 说说话</h2><p class="notice">界面演示 · 当前未接入 AI 推理模型，回复为预设内容。</p><div id="messages"><p class="message">今天有什么想分享给我的？我在听。</p></div><form id="chat-form"><input id="chat-input" maxlength="1000" required placeholder="把今天的小事告诉我…"><button class="primary">发送 ↗</button></form></article></section>
+  )}</div><div class="import-grid"><article><h3>↥ 导入 3D 模型</h3><p>支持自包含 GLB / GLTF。节能预算：最多 10 万顶点、贴图约 96 MiB。模型保存在本机，刷新后可恢复。清除站点数据会删除模型。</p><label class="primary">选择模型文件<input id="model-file" type="file" accept=".glb,.gltf" hidden></label><div class="asset-actions"><button class="secondary" id="restore-model" disabled>恢复已保存模型</button><button class="secondary" id="export-model">导出当前模型</button><button class="secondary" id="delete-model" disabled>删除已保存模型</button></div><label class="setting">自带动画<select id="model-animation" disabled><option value="-1">无自带动画</option></select></label><p class="muted" id="import-status" role="status" aria-live="polite">自带动画会自动播放；未绑定骨骼的模型不支持通用宠物动作。</p></article><article><h3>✧ 本地参考照片</h3><p>选择照片作为灵感参考。照片生成已暂缓，不加载额外的生成模型。</p><label class="secondary">选择参考照片<input id="photo-file" type="file" accept="image/*" hidden></label><img id="photo" hidden alt="本地参考照片"><p class="muted">当前只提供本地照片预览，不会生成模型或上传照片。</p></article></div></section>
+<section id="chat" class="page hidden"><article class="chat-card"><h2>和 MOMO 说说话</h2><p class="notice">本地推理 · 请先在偏好设置准备模型。仅原生版支持，聊天记录独立于外观保存。</p><div id="messages"><p class="message">今天有什么想分享给我的？我在听。</p></div><form id="chat-form"><input id="chat-input" maxlength="1000" required placeholder="把今天的小事告诉我…"><button class="primary" id="chat-send">发送 ↗</button><button class="secondary" type="button" id="chat-cancel" disabled>停止</button></form><p id="chat-status" class="muted" role="status"></p></article></section>
 <section id="tasks" class="page hidden"><article class="empty"><span>☷</span><h2>把琐事交给未来的我。</h2><p>任务功能稍后添加，先好好认识彼此。</p><p class="notice">淘宝 / 京东双 11 自动化尚未实现，当前不会读取或操控其他应用。</p></article></section>
-<section id="settings" class="page hidden"><article><h2>按你的节奏陪伴</h2><label class="setting">伙伴昵称<input id="pet-name" maxlength="20" value=""></label><label class="setting">安静模式<input type="checkbox" id="quiet"></label><label class="setting">角色显示大小<input id="size" type="range" min="70" max="130" value="100"></label><h3>属于我们的记忆</h3><p>记忆独立于角色外观保存。更换、导入或删除模型不会清除聊天记录、互动和偏好。</p><label for="memory-notes">希望伙伴记住的事情</label><textarea id="memory-notes" maxlength="10000" rows="4" placeholder="例如：我喜欢安静的陪伴，习惯晚上阅读。"></textarea><button class="secondary" id="save-memory">保存记忆</button><p class="muted">当前为本机记事；AI 尚未接入，暂不会自动理解这些内容。清除浏览器数据仍会删除本地记忆。</p><h3>本地 AI · 集成规划</h3><p>目标：将量化模型与推理引擎打包到安卓安装包，支持离线对话。当前原型未包含模型权重或推理引擎。</p><p class="notice">照片转 3D 需要独立生成模型或服务，不由聊天模型完成。安卓悬浮窗与电脑桌面窗口也需分别接入原生能力。</p><button class="secondary" id="reset">恢复默认设置</button></article></section>
+<section id="settings" class="page hidden"><article><h2>按你的节奏陪伴</h2><label class="setting">伙伴昵称<input id="pet-name" maxlength="20" value=""></label><label class="setting">安静模式<input type="checkbox" id="quiet"></label><label class="setting">角色显示大小<input id="size" type="range" min="70" max="130" value="100"></label><h3>属于我们的记忆</h3><p>记忆独立于角色外观保存。更换、导入或删除模型不会清除聊天记录、互动和偏好。</p><label for="memory-notes">希望伙伴记住的事情</label><textarea id="memory-notes" maxlength="10000" rows="4" placeholder="例如：我喜欢安静的陪伴，习惯晚上阅读。"></textarea><button class="secondary" id="save-memory">保存记忆</button><p class="muted">当前为本机记事；AI 尚未接入，暂不会自动理解这些内容。清除浏览器数据仍会删除本地记忆。</p><h3>本地 AI · 集成规划</h3><p>目标：将已校验的 GGUF 权重随安装资源打包，原生版使用本地推理引擎。模型未安装时会明确提示，不会生成预设回复。</p><p class="notice">照片转 3D 需要独立生成模型或服务，不由聊天模型完成。安卓悬浮窗与电脑桌面窗口也需分别接入原生能力。</p><button class="secondary" id="reset">恢复默认设置</button></article></section>
 <footer><span>✧ 留一点空间，给可爱的事物。</span><span>本地交互原型 · Android / Desktop 设计</span></footer></main><div id="toast" role="status"></div>`;
 const pages = ["home", "models", "chat", "tasks", "settings"];
 function openPage(i) {
@@ -92,6 +95,8 @@ function openPage(i) {
     .getElementById("companion-dashboard")
     ?.classList.toggle("hidden", i !== 0);
   resize();
+  refreshRendering();
+  window.dispatchEvent(new CustomEvent("momo-page", { detail: i }));
 }
 document
   .querySelectorAll("[data-page]")
@@ -132,6 +137,8 @@ const floor = new T.Mesh(
 );
 floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
+if (new URLSearchParams(location.search).get("pet") === "1")
+  floor.visible = false;
 scene.add(floor);
 const pet = new T.Group();
 scene.add(pet);
@@ -264,11 +271,16 @@ function resize() {
   renderer.setSize(host.clientWidth, host.clientHeight);
   camera.aspect = host.clientWidth / host.clientHeight;
   camera.updateProjectionMatrix();
+  refreshRendering();
 }
 new ResizeObserver(resize).observe(host);
 const clock = new T.Clock();
-let renderElapsed = 0;
-renderer.setAnimationLoop(() => {
+let renderElapsed = 0,
+  renderTimer = null,
+  renderRequest = null,
+  nativePaused = false,
+  aiBusy = false;
+function renderFrame() {
   renderElapsed += clock.getDelta();
   if (
     document.hidden ||
@@ -303,7 +315,57 @@ renderer.setAnimationLoop(() => {
   controls.update();
   if (renderPreferences.motion) mixer?.update(dt);
   renderer.render(scene, camera);
+}
+function canRender() {
+  return (
+    !document.hidden &&
+    !nativePaused &&
+    !aiBusy &&
+    !document.getElementById("home").classList.contains("hidden")
+  );
+}
+function scheduleFrame() {
+  if (!canRender() || !renderPreferences.motion) return;
+  renderTimer = setTimeout(() => {
+    renderRequest = requestAnimationFrame(() => {
+      if (canRender()) renderFrame();
+      scheduleFrame();
+    });
+  }, 1000 / renderPreferences.fps);
+}
+function refreshRendering() {
+  clearTimeout(renderTimer);
+  if (renderRequest !== null) cancelAnimationFrame(renderRequest);
+  controls.enableDamping = renderPreferences.motion;
+  if (!canRender()) return;
+  renderElapsed = 1 / renderPreferences.fps;
+  renderFrame();
+  scheduleFrame();
+}
+controls.addEventListener("change", () => {
+  if (!renderPreferences.motion && canRender()) {
+    renderRequest = requestAnimationFrame(() => {
+      renderElapsed = 1 / renderPreferences.fps;
+      renderFrame();
+    });
+  }
 });
+document.addEventListener("visibilitychange", refreshRendering);
+window.addEventListener("momo-power", (e) => {
+  nativePaused = !!e.detail.paused;
+  refreshRendering();
+});
+window.addEventListener("momo-ai-busy", (e) => {
+  aiBusy = !!e.detail;
+  refreshRendering();
+});
+document.addEventListener("click", () => {
+  if (!renderPreferences.motion) refreshRendering();
+});
+document.addEventListener("input", () => {
+  if (!renderPreferences.motion) refreshRendering();
+});
+refreshRendering();
 function syncJournalDay() {
   today = new Date().toLocaleDateString("sv-SE");
   if (journal.day !== today) {
@@ -380,13 +442,18 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && document.body.classList.contains("companion-mode"))
     document.getElementById("focus-mode").click();
 });
-document.getElementById("snapshot").onclick = () => {
-  renderer.render(scene, camera);
-  const a = document.createElement("a");
-  a.download = "MOMO-" + today + ".png";
-  a.href = renderer.domElement.toDataURL("image/png");
-  a.click();
-  toast("已保存透明背景的宠物照片");
+document.getElementById("snapshot").onclick = async () => {
+  try {
+    renderer.render(scene, camera);
+    const blob = await new Promise((resolve) =>
+      renderer.domElement.toBlob(resolve, "image/png"),
+    );
+    if (!blob) throw Error();
+    await downloadFile(blob, "MOMO-" + today + ".png");
+    toast("宠物照片已导出");
+  } catch {
+    toast("照片导出失败");
+  }
 };
 document.getElementById("wave").onclick = () => {
   asleep = false;
@@ -408,8 +475,13 @@ document.getElementById("sleep").onclick = () => {
 let modelRevision = 0,
   cachedModel = null,
   activeAnimations = [];
+document
+  .getElementById("model-animation")
+  .replaceChildren(new Option("无自带动画", "-1"));
+document.getElementById("model-animation").disabled = true;
 function useBuiltin(index = selectedModel) {
   modelRevision++;
+  document.getElementById("model-animation").replaceChildren(new Option("无自带动画","-1"));document.getElementById("model-animation").disabled=true;
   activeAsset = "builtin";
   activeAnimations = [];
   if (current !== pet) {
@@ -470,6 +542,31 @@ async function loadAsset(asset, { persist = false } = {}) {
     });
     const gltf = await new GLTFLoader(manager).parseAsync(asset.data, "");
     root = gltf.scene;
+    let vertices = 0,
+      textureBytes = 0;
+    const seenTextures = new Set();
+    root.traverse((object) => {
+      vertices += object.geometry?.attributes.position?.count || 0;
+      for (const material of object.material
+        ? Array.isArray(object.material)
+          ? object.material
+          : [object.material]
+        : [])
+        for (const value of Object.values(material))
+          if (value?.isTexture && !seenTextures.has(value)) {
+            seenTextures.add(value);
+            textureBytes +=
+              ((value.image?.width || 0) * (value.image?.height || 0) * 4 * 4) /
+              3;
+          }
+    });
+    if (vertices > 100000 || textureBytes > 96 * 1024 * 1024) {
+      const error = Error(
+        "模型超出节能预算：请将顶点降到 10 万以内、贴图内存降到约 96 MiB。",
+      );
+      error.budget = true;
+      throw error;
+    }
     root.updateMatrixWorld(true);
     const box = new T.Box3().setFromObject(root),
       size = box.getSize(new T.Vector3()),
@@ -495,7 +592,16 @@ async function loadAsset(asset, { persist = false } = {}) {
     scene.add(wrapper);
     activeAnimations = gltf.animations;
     mixer = activeAnimations.length ? new T.AnimationMixer(root) : null;
-    activeAnimations.forEach((a) => mixer.clipAction(a).play());
+    if (activeAnimations.length) mixer.clipAction(activeAnimations[0]).play();
+    const animationMenu = document.getElementById("model-animation");
+    animationMenu.replaceChildren(
+      new Option("停止自带动画", "-1"),
+      ...activeAnimations.map(
+        (a, i) => new Option(a.name || `动画 ${i + 1}`, String(i)),
+      ),
+    );
+    animationMenu.disabled = !activeAnimations.length;
+    animationMenu.value = activeAnimations.length ? "0" : "-1";
     activeAsset = "custom";
     save();
     document.querySelector(".pet-label h2 span").textContent = "自定义模型";
@@ -506,6 +612,7 @@ async function loadAsset(asset, { persist = false } = {}) {
       try {
         await storeModel(asset);
         cachedModel = asset;
+        writeStore("momo-assets-updated", Date.now());
         updateAssetButtons();
         if (revision === modelRevision)
           modelStatus.textContent += " · 已保存到本机";
@@ -513,11 +620,12 @@ async function loadAsset(asset, { persist = false } = {}) {
         toast("模型已加载，但本地保存失败；刷新后需重新导入");
       }
     }
-  } catch {
+  } catch (error) {
     if (root && current.children[0] !== root) dispose(root);
     if (revision === modelRevision)
-      modelStatus.textContent =
-        "加载失败。请使用有效且包含所有资源的 GLB / GLTF；当前伙伴已保留。";
+      modelStatus.textContent = error.budget
+        ? error.message
+        : "加载失败。请使用有效且包含所有资源的 GLB / GLTF；当前伙伴已保留。";
   }
 }
 document.getElementById("model-file").onchange = async (e) => {
@@ -571,14 +679,10 @@ document.getElementById("export-model").onclick = async (e) => {
       current.position.copy(pose.position);
       current.rotation.copy(pose.rotation);
     }
-    const url = URL.createObjectURL(
-        new Blob([data], { type: "model/gltf-binary" }),
-      ),
-      a = document.createElement("a");
-    a.href = url;
-    a.download = "MOMO-companion.glb";
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    await downloadFile(
+      new Blob([data], { type: "model/gltf-binary" }),
+      "MOMO-companion.glb",
+    );
     toast("已导出 GLB 模型");
   } catch {
     toast("模型导出失败，请尝试重新导入");
@@ -605,30 +709,50 @@ function renderMessage(message) {
 memory.messages
   .filter((m) => m && typeof m.text === "string")
   .forEach(renderMessage);
-document.getElementById("chat-form").onsubmit = (e) => {
+let chatting = false;
+document.getElementById("chat-cancel").onclick = () => cancelAI();
+document.getElementById("chat-form").onsubmit = async (e) => {
   e.preventDefault();
+  if (chatting) return;
   const input = document.getElementById("chat-input");
   if (!input.value.trim()) return;
-  const messages = [
-    { role: "user", text: input.value },
-    {
-      role: "assistant",
-      text: "收到你的话啦 ♡ 这是预设演示回复；离线 AI 集成完成后，我才能理解并回应你的内容。",
-    },
-  ];
-  if (memory.messages.length + messages.length > 20000) {
-    toast("聊天记录已达本机容量上限，请先导出备份；已有记忆不会删除。");
+  if (memory.messages.length + 2 > 20000) {
+    toast("聊天容量已满，请先导出备份，已有记录不会删除。");
     return;
   }
-  memory.messages.push(...messages);
+  const user = { role: "user", text: input.value };
+  memory.messages.push(user);
   if (!writeStore("momo-memory", memory)) {
-    memory.messages.splice(-messages.length);
+    memory.messages.pop();
     return;
   }
-  messages.forEach(renderMessage);
+  renderMessage(user);
   input.value = "";
-  const list = document.getElementById("messages");
-  list.scrollTop = list.scrollHeight;
+  chatting = true;
+  document.getElementById("chat-send").disabled = true;
+  document.getElementById("chat-cancel").disabled = false;
+  document.getElementById("chat-status").textContent =
+    "正在本机推理，宠物动画暂时休息…";
+  window.dispatchEvent(new CustomEvent("momo-ai-busy", { detail: true }));
+  try {
+    const result = await askAI(prepareMessages(memory, nameInput.value));
+    const assistant = { role: "assistant", text: result.text };
+    memory.messages.push(assistant);
+    if (!writeStore("momo-memory", memory)) memory.messages.pop();
+    renderMessage(assistant);
+    document.getElementById("chat-status").textContent =
+      "本地回复完成，空闲后自动卸载模型。";
+  } catch (error) {
+    document.getElementById("chat-status").textContent =
+      error.message || "推理失败，请检查模型。";
+  } finally {
+    chatting = false;
+    document.getElementById("chat-send").disabled = false;
+    document.getElementById("chat-cancel").disabled = true;
+    window.dispatchEvent(new CustomEvent("momo-ai-busy", { detail: false }));
+    document.getElementById("messages").scrollTop =
+      document.getElementById("messages").scrollHeight;
+  }
 };
 document.getElementById("memory-notes").value =
   typeof memory.notes === "string" ? memory.notes : "";
@@ -724,12 +848,90 @@ readModel()
     modelStatus.textContent = "浏览器模型存储不可用，仍可临时导入。";
   });
 
-initCompanion({
-  toast,
-  save: writeStore,
-  isQuiet: () => quiet.checked,
-  interactionTotal: () => journal.total,
-  say: (text) => {
-    document.getElementById("bubble").textContent = text;
-  },
+if (new URLSearchParams(location.search).get("pet") !== "1") {
+  initAIPanel();
+  initCompanion({
+    toast,
+    save: writeStore,
+    isQuiet: () => quiet.checked,
+    interactionTotal: () => journal.total,
+    say: (text) => {
+      document.getElementById("bubble").textContent = text;
+    },
+  });
+}
+initNativeUI();
+
+window.addEventListener("storage", async (event) => {
+  if (event.key === "momo-memory") {
+    Object.assign(memory, readRecord("momo-memory", memory));
+    const list = document.getElementById("messages");
+    list.replaceChildren();
+    memory.messages.forEach(renderMessage);
+    if (document.activeElement !== document.getElementById("memory-notes"))
+      document.getElementById("memory-notes").value = memory.notes;
+  }
+  if (event.key === "momo-journal") {
+    Object.assign(journal, readRecord("momo-journal", journal));
+    touch = journal.touches;
+    refreshStats();
+  }
+  if (event.key === "momo-settings") {
+    const settings = readRecord("momo-settings", saved);
+    nameInput.value = settings.name;
+    quiet.checked = settings.quiet;
+    scale.value = settings.size;
+    document.querySelector(".pet-label h2").firstChild.textContent =
+      settings.name + " ";
+    current.scale.setScalar(Number(settings.size) / 100);
+    document.getElementById("bubble").style.visibility = settings.quiet
+      ? "hidden"
+      : "visible";
+  }
+  if (event.key === "momo-preferences") {
+    renderPreferences = readRecord("momo-preferences", renderPreferences);
+    refreshRendering();
+  }
+  if (event.key === "momo-appearance") {
+    const next = readRecord("momo-appearance", appearance);
+    selectedModel = next.model;
+    setWorld(next.world);
+    necklace.visible = next.accessory;
+    if (next.activeAsset === "builtin") {
+      useBuiltin(next.model);
+    } else {
+      const asset = await readModel();
+      if (asset) await loadAsset(asset);
+    }
+  }
+  if (event.key === "momo-assets-updated" && activeAsset === "custom") {
+    const asset = await readModel();
+    if (asset) await loadAsset(asset);
+  }
+  refreshRendering();
 });
+if (new URLSearchParams(location.search).get("pet") === "1")
+  for (const [id, key] of [
+    ["feed", "snacks"],
+    ["wave", "pats"],
+  ])
+    document.getElementById(id).addEventListener("click", () => {
+      const care = readRecord("momo-care", {
+        snacks: 0,
+        pats: 0,
+        focusSessions: 0,
+        focusMinutes: 0,
+        visits: [],
+      });
+      care[key]++;
+      writeStore("momo-care", care);
+    });
+
+document.getElementById("model-animation").onchange = (e) => {
+  if (!mixer) return;
+  mixer.stopAllAction();
+  const index = Number(e.target.value);
+  if (index >= 0 && activeAnimations[index])
+    mixer.clipAction(activeAnimations[index]).play();
+  refreshRendering();
+};
